@@ -16,7 +16,13 @@ import {
   FileSpreadsheet,
   AlertCircle
 } from 'lucide-react';
-import { CebuanoVoiceGuide } from './CebuanoVoiceGuide';
+import { ClassProgramAndTeacherLoadMaker } from './ClassProgramAndTeacherLoadMaker';
+import { AdminHonorsDashboard } from './AdminHonorsDashboard';
+import { LISActivityMonitor } from './LISActivityMonitor';
+import { DoorDemoGuide } from './DoorDemoGuide';
+import { MeritAwardGenerator } from './MeritAwardGenerator';
+
+import { useAuth, REGISTRAR_SHS, REGISTRAR_JHS, isAuthorizedForLIS } from '../context/AuthContext';
 
 interface PrincipalDoorsViewProps {
   doorId: 'head-anisah' | 'head-andot' | 'head-calibo';
@@ -24,7 +30,11 @@ interface PrincipalDoorsViewProps {
 }
 
 export const PrincipalDoorsView: React.FC<PrincipalDoorsViewProps> = ({ doorId, onClose }) => {
+  const { currentUser, isOwner } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('overview');
+  const [showDemo, setShowDemo] = useState(false);
+  
+  const isAuthorizedOfficial = isOwner || isAuthorizedForLIS(currentUser.email);
   const [notice, setNotice] = useState<string | null>(null);
 
   const showNotice = (msg: string) => {
@@ -45,7 +55,9 @@ export const PrincipalDoorsView: React.FC<PrincipalDoorsViewProps> = ({ doorId, 
         { id: 'overview', label: 'Institutional Overview' },
         { id: 'sip', label: 'SIP & AIP Programs' },
         { id: 'opcrf', label: 'Faculty Performance (OPCRF/IPCRF)' },
-        { id: 'clearances', label: 'Official Clearances' }
+        { id: 'clearances', label: 'Official Clearances' },
+        { id: 'merit_awards', label: 'Merit Awards & Certificates' },
+        { id: 'honors', label: 'Honors & Ranking' }
       ]
     },
     'head-andot': {
@@ -60,7 +72,8 @@ export const PrincipalDoorsView: React.FC<PrincipalDoorsViewProps> = ({ doorId, 
         { id: 'overview', label: 'Academic Command' },
         { id: 'loading', label: 'Faculty Loading & Schedules' },
         { id: 'attendance', label: 'Learner Attendance Audits' },
-        { id: 'supervision', label: 'Classroom Observations' }
+        { id: 'supervision', label: 'Classroom Observations' },
+        { id: 'honors', label: 'Honors & Ranking' }
       ]
     },
     'head-calibo': {
@@ -75,7 +88,8 @@ export const PrincipalDoorsView: React.FC<PrincipalDoorsViewProps> = ({ doorId, 
         { id: 'overview', label: 'Curriculum Command' },
         { id: 'ilaw_approvals', label: 'ILAW Exemplar Approvals' },
         { id: 'bow_audit', label: 'BOW Compliance (DO 9 s.2026)' },
-        { id: 'lac_sessions', label: 'LAC Coaching Sessions' }
+        { id: 'lac_sessions', label: 'LAC Coaching Sessions' },
+        { id: 'honors', label: 'Honors & Ranking' }
       ]
     }
   };
@@ -94,7 +108,7 @@ export const PrincipalDoorsView: React.FC<PrincipalDoorsViewProps> = ({ doorId, 
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-400 text-stone-950 text-[10px] font-black uppercase tracking-wider mb-1">
               <ShieldCheck className="w-3.5 h-3.5" />
-              {currentConfig.badge}
+              WELCOME AND ENJOY LEARNING WITH BOISER EDUCATIONAL RESOURCES
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-white">
               {currentConfig.title}
@@ -105,13 +119,24 @@ export const PrincipalDoorsView: React.FC<PrincipalDoorsViewProps> = ({ doorId, 
           </div>
         </div>
 
-        <button
-          onClick={onClose}
-          className="px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/30 rounded-2xl text-xs font-black text-white flex items-center gap-2 transition cursor-pointer shrink-0"
-        >
-          <span>🚪 Close Door</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setShowDemo(true)}
+            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-stone-950 font-black rounded-2xl text-xs flex items-center gap-1.5 transition cursor-pointer shadow"
+          >
+            <Eye className="w-4 h-4 text-stone-950" />
+            <span>4K TV Demo Guide</span>
+          </button>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/30 rounded-2xl text-xs font-black text-white flex items-center gap-2 transition cursor-pointer shrink-0"
+          >
+            <span>🚪 Close Door</span>
+          </button>
+        </div>
       </div>
+
+      {showDemo && <DoorDemoGuide onClose={() => setShowDemo(false)} />}
 
       {notice && (
         <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-2xl text-xs font-black text-emerald-900 flex items-center gap-2 animate-in fade-in">
@@ -119,12 +144,6 @@ export const PrincipalDoorsView: React.FC<PrincipalDoorsViewProps> = ({ doorId, 
           <span>{notice}</span>
         </div>
       )}
-
-      {/* Voice Guide Strip */}
-      <CebuanoVoiceGuide
-        guideKey="principals"
-        label="Listen to Executive Office Audio Guide"
-      />
 
       {/* Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-stone-200">
@@ -190,7 +209,30 @@ export const PrincipalDoorsView: React.FC<PrincipalDoorsViewProps> = ({ doorId, 
         </div>
       )}
 
-      {/* Specific Tabs for Principal III-A Ma'am Anisah */}
+      {/* TAB: Honors */}
+      {activeTab === 'honors' && (
+         <div className="space-y-4">
+           {!isAuthorizedOfficial && (
+             <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-[10px] font-black text-amber-900 uppercase">
+               ⚠️ Restricted View: Only authorized officials (Sir Fiel for SHS / Ma'am Edalyn for JHS) can finalize these rankings.
+             </div>
+           )}
+           <AdminHonorsDashboard role={doorId === 'head-calibo' ? 'JHS' : 'SHS'} />
+         </div>
+      )}
+
+      {/* TAB: LIS Activity */}
+      {activeTab === 'lis_activity' && (
+        <LISActivityMonitor role={doorId === 'head-calibo' ? 'JHS' : 'SHS'} />
+      )}
+
+      {/* TAB: Merit Awards */}
+      {activeTab === 'merit_awards' && (
+        <div className="space-y-6 animate-in fade-in duration-300">
+           <MeritAwardGenerator />
+        </div>
+      )}
+
       {doorId === 'head-anisah' && activeTab === 'sip' && (
         <div className="space-y-4 text-xs">
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl space-y-2">
@@ -209,16 +251,7 @@ export const PrincipalDoorsView: React.FC<PrincipalDoorsViewProps> = ({ doorId, 
       {/* Specific Tabs for Ma'am Joan J. Andot */}
       {doorId === 'head-andot' && activeTab === 'loading' && (
         <div className="space-y-4 text-xs">
-          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-2">
-            <h4 className="font-black text-emerald-900">Senior High School Faculty Loading Matrix</h4>
-            <p className="text-stone-600">64 full-time subject teachers deployed with balanced instructional hours across Term 1, Term 2, and Term 3.</p>
-          </div>
-          <button
-            onClick={() => showNotice('Teacher Loading Schedule saved and verified!')}
-            className="px-4 py-2.5 bg-emerald-800 text-white rounded-xl font-bold flex items-center gap-2"
-          >
-            <Download className="w-4 h-4 text-amber-300" /> Download Teaching Loads Summary (Excel)
-          </button>
+          <ClassProgramAndTeacherLoadMaker />
         </div>
       )}
 

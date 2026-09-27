@@ -17,10 +17,13 @@ import {
   ExternalLink,
   ArrowRight,
   Info,
-  GraduationCap
+  GraduationCap,
+  RefreshCw,
+  Terminal
 } from 'lucide-react';
 import { usePWAInstall, DetectedPlatform } from '../hooks/usePWAInstall';
 import { DepEdTeacherSignInModal } from './DepEdTeacherSignInModal';
+import { executeApplyAllAppUpdatesCommand, LATEST_APP_VERSION, LATEST_IMPROVEMENTS_LOG } from '../services/appUpdateCommandService';
 
 interface BoiserAppInstallerProps {
   variant?: 'button' | 'banner' | 'card' | 'compact';
@@ -47,6 +50,32 @@ export const BoiserAppInstaller: React.FC<BoiserAppInstallerProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTeacherAuthOpen, setIsTeacherAuthOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'install' | 'specs' | 'faq'>('install');
+  
+  // App update command execution state
+  const [isApplyingUpdates, setIsApplyingUpdates] = useState(false);
+  const [updateProgressMsg, setUpdateProgressMsg] = useState<string | null>(null);
+  const [updateSuccessMsg, setUpdateSuccessMsg] = useState<string | null>(null);
+
+  const handleExecuteApplyAllUpdates = async () => {
+    setIsApplyingUpdates(true);
+    setUpdateProgressMsg('Executing update command and refreshing cache nodes...');
+    setUpdateSuccessMsg(null);
+
+    const result = await executeApplyAllAppUpdatesCommand({
+      silentVoice: false,
+      autoReload: false,
+      onProgress: (step) => setUpdateProgressMsg(step)
+    });
+
+    setIsApplyingUpdates(false);
+    if (result.success) {
+      setUpdateSuccessMsg(`✓ Success! All improvements & revisions (${result.version}) applied to your installed app.`);
+      setTimeout(() => {
+        setUpdateSuccessMsg(null);
+        setUpdateProgressMsg(null);
+      }, 7000);
+    }
+  };
 
   // Realistic measured application download sizes
   const packageMetrics = {
@@ -275,15 +304,66 @@ export const BoiserAppInstaller: React.FC<BoiserAppInstallerProps> = ({
             {/* TAB 1: INSTALLATION STEPS */}
             {activeTab === 'install' && (
               <div className="space-y-4">
+                
+                {/* ⚡ ONE-CLICK COMMAND: APPLY ALL IMPROVEMENTS & UPDATES */}
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-950 via-slate-900 to-blue-950 border-2 border-amber-400 text-white space-y-3 shadow-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-amber-400/20 border border-amber-400 flex items-center justify-center text-amber-300">
+                        <Terminal className="w-4 h-4 text-amber-300" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-xs font-black uppercase text-amber-300 tracking-wider">
+                            Apply All Improvements Command
+                          </h3>
+                          <span className="px-2 py-0.5 rounded-full bg-amber-400 text-stone-950 text-[9px] font-mono font-black">
+                            {LATEST_APP_VERSION}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-blue-200">
+                          One-click sync: Preprocessing OCR filter, Guidance HUD, Action Research Annexes &amp; 3 Suggestions
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {updateProgressMsg && (
+                    <div className="p-2.5 rounded-xl bg-blue-900/60 border border-blue-400/40 text-[11px] text-blue-200 flex items-center gap-2 font-mono">
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-cyan-300" />
+                      <span>{updateProgressMsg}</span>
+                    </div>
+                  )}
+
+                  {updateSuccessMsg && (
+                    <div className="p-2.5 rounded-xl bg-emerald-950/80 border border-emerald-400 text-[11px] text-emerald-200 flex items-center gap-2 font-bold">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                      <span>{updateSuccessMsg}</span>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleExecuteApplyAllUpdates}
+                    disabled={isApplyingUpdates}
+                    className="w-full py-2.5 px-4 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:brightness-110 active:scale-98 text-stone-950 rounded-xl font-black text-xs uppercase tracking-wider transition flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-4 h-4 text-stone-950 ${isApplyingUpdates ? 'animate-spin' : ''}`} />
+                    <span>{isApplyingUpdates ? 'Applying Improvements...' : '⚡ EXECUTE COMMAND: Apply Revisions to Installed App'}</span>
+                  </button>
+                  <p className="text-[9px] text-stone-400 text-center italic">
+                    Safe sync protocol: Teacher grades, offline answer keys, and local databases are completely protected.
+                  </p>
+                </div>
+
                 {/* Result Message Banner */}
-                {installStatus === 'success' && (
+                {((installStatus as any) === 'success' || installStatus === 'installed') && (
                   <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-900 flex items-center gap-2.5 font-bold">
                     <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                     <span>Success! BOISER POWER TOOLS LITE is installed on your device. You can launch it directly from your home screen or desktop.</span>
                   </div>
                 )}
 
-                {installStatus === 'dismissed' && (
+                {((installStatus as any) === 'dismissed' || installStatus === 'failed') && (
                   <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-amber-900 flex items-center gap-2.5 font-semibold">
                     <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
                     <span>Installation was cancelled or dismissed. You can try again whenever you are ready.</span>

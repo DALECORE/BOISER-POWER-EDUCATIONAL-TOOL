@@ -372,8 +372,8 @@ export const EducationalSourcesHub: React.FC<EducationalSourcesHubProps> = ({ on
               </table>
             </div>
 
-            {/* DepEd Commons & LRMDS Free Legal Access Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            {/* DepEd LRMDS Free Legal Access Card */}
+            <div className="pt-2">
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-5 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="font-black text-sm text-[#092B62] flex items-center gap-2">
@@ -394,32 +394,6 @@ export const EducationalSourcesHub: React.FC<EducationalSourcesHubProps> = ({ on
                     target="_blank"
                     rel="noreferrer"
                     className="text-blue-600 hover:text-blue-800"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-black text-sm text-emerald-900 flex items-center gap-2">
-                    <Globe className="w-4 h-4 text-emerald-600" />
-                    <span>DepEd Commons Online Platform</span>
-                  </span>
-                  <span className="text-[10px] font-bold bg-emerald-200/60 text-emerald-900 px-2 py-0.5 rounded-md font-mono">
-                    Zero-Data Open Access
-                  </span>
-                </div>
-                <p className="text-xs text-emerald-950 font-medium">
-                  Direct online educational platform providing free access to digital learning modules, interactive self-assessments, and video lessons for public and private school learners.
-                </p>
-                <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-200 font-mono text-xs text-emerald-900 font-bold flex items-center justify-between">
-                  <span>commons.deped.gov.ph</span>
-                  <a
-                    href="https://commons.deped.gov.ph"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-emerald-600 hover:text-emerald-800"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>

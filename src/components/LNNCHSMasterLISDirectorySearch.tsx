@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useAuth } from '../context/AuthContext';
 import {
   Search,
   Users,
@@ -35,6 +36,37 @@ interface Props {
 }
 
 export const LNNCHSMasterLISDirectorySearch: React.FC<Props> = ({ onSelectStudent }) => {
+  const { currentUser, isOwner } = useAuth();
+
+  const isMasterCreator = isOwner || 
+    currentUser?.email === 'boisersteavenkinth@gmail.com' || 
+    currentUser?.email === 'boisersteavenkinth@deped.gov.ph';
+
+  const isRegistrarSHS = currentUser?.email === 'fiel.official@deped.gov.ph' || 
+    currentUser?.name?.toLowerCase().includes('fiel robinson');
+
+  const isRegistrarJHS = currentUser?.email === 'edalyn.olis@deped.gov.ph' || 
+    currentUser?.name?.toLowerCase().includes('edalyn olis');
+
+  // Find all sections assigned to this adviser (matching by email or name)
+  const allSections = useMemo(() => Object.values(LNNCHS_20_SECTIONS_PER_GRADE).flat(), []);
+  const assignedSectionsForUser = useMemo(() => {
+    if (!currentUser) return [];
+    const uEmail = currentUser.email?.toLowerCase().trim();
+    const uName = currentUser.name?.toLowerCase().trim();
+    return allSections.filter(sec => {
+      const secAdviserName = sec.adviserName?.toLowerCase().trim();
+      const secAdviserEmail = sec.adviserEmail?.toLowerCase().trim();
+      return (secAdviserEmail && uEmail === secAdviserEmail) || 
+             (secAdviserName && (uName.includes(secAdviserName) || secAdviserName.includes(uName)));
+    });
+  }, [currentUser, allSections]);
+
+  const isAdviser = assignedSectionsForUser.length > 0;
+
+  // Enforce access authorization (1 of the 4 designated roles)
+  const isAuthorized = isMasterCreator || isRegistrarSHS || isRegistrarJHS || isAdviser;
+
   const [activeTab, setActiveTab] = useState<'search' | 'sections' | 'summary'>('search');
   const [displayMode, setDisplayMode] = useState<'table' | 'cards'>('cards');
   const [selectedGrade, setSelectedGrade] = useState<string>('All');
@@ -46,19 +78,62 @@ export const LNNCHSMasterLISDirectorySearch: React.FC<Props> = ({ onSelectStuden
   const [selectedStudentModal, setSelectedStudentModal] = useState<LISStudentMasterRecord | null>(null);
   const [activeSectionModal, setActiveSectionModal] = useState<SectionDefinition | null>(null);
 
-  const gradeLevels = ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'];
-
-  // Dynamic sections available for selected grade
-  const availableSections = useMemo(() => {
-    if (selectedGrade === 'All') {
-      return Object.values(LNNCHS_20_SECTIONS_PER_GRADE).flat();
+  // Filter grade level dropdown choices based on Registrar boundaries
+  const gradeLevels = useMemo(() => {
+    const baseGrades = ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'];
+    if (isMasterCreator) return baseGrades;
+    if (isRegistrarSHS) return ['Grade 11', 'Grade 12'];
+    if (isRegistrarJHS) return ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'];
+    if (isAdviser) {
+      // Return only grades corresponding to assigned sections
+      const grades = assignedSectionsForUser.map(s => s.gradeLevel);
+      return Array.from(new Set(grades));
     }
-    return LNNCHS_20_SECTIONS_PER_GRADE[selectedGrade] || [];
-  }, [selectedGrade]);
+    return [];
+  }, [isMasterCreator, isRegistrarSHS, isRegistrarJHS, isAdviser, assignedSectionsForUser]);
 
-  // Filtered students
+  // Dynamic sections available for selected grade (with strict security filter)
+  const availableSections = useMemo(() => {
+    let baseList = [];
+    if (selectedGrade === 'All') {
+      baseList = Object.values(LNNCHS_20_SECTIONS_PER_GRADE).flat();
+    } else {
+      baseList = LNNCHS_20_SECTIONS_PER_GRADE[selectedGrade] || [];
+    }
+
+    // Role filtering rules
+    if (isMasterCreator) {
+      return baseList;
+    } else if (isRegistrarSHS) {
+      return baseList.filter(s => s.gradeLevel === 'Grade 11' || s.gradeLevel === 'Grade 12');
+    } else if (isRegistrarJHS) {
+      return baseList.filter(s => s.gradeLevel !== 'Grade 11' && s.gradeLevel !== 'Grade 12');
+    } else if (isAdviser) {
+      const assignedNames = assignedSectionsForUser.map(as => as.sectionName);
+      return baseList.filter(s => assignedNames.includes(s.sectionName));
+    }
+    return [];
+  }, [selectedGrade, isMasterCreator, isRegistrarSHS, isRegistrarJHS, isAdviser, assignedSectionsForUser]);
+
+  // Filtered students according to Registrar/Adviser/Creator roles
   const filteredStudents = useMemo(() => {
-    return CONSOLIDATED_LIS_STUDENTS.filter(s => {
+    if (!isAuthorized) return [];
+
+    let allowedStudents = CONSOLIDATED_LIS_STUDENTS;
+    if (isMasterCreator) {
+      // Allowed all records
+    } else if (isRegistrarSHS) {
+      allowedStudents = CONSOLIDATED_LIS_STUDENTS.filter(s => s.gradeLevel === 'Grade 11' || s.gradeLevel === 'Grade 12');
+    } else if (isRegistrarJHS) {
+      allowedStudents = CONSOLIDATED_LIS_STUDENTS.filter(s => s.gradeLevel !== 'Grade 11' && s.gradeLevel !== 'Grade 12');
+    } else if (isAdviser) {
+      const assignedNames = assignedSectionsForUser.map(as => as.sectionName);
+      allowedStudents = CONSOLIDATED_LIS_STUDENTS.filter(s => assignedNames.includes(s.section));
+    } else {
+      allowedStudents = [];
+    }
+
+    return allowedStudents.filter(s => {
       // Grade filter
       if (selectedGrade !== 'All' && s.gradeLevel !== selectedGrade) return false;
       // Section filter
@@ -80,7 +155,7 @@ export const LNNCHSMasterLISDirectorySearch: React.FC<Props> = ({ onSelectStuden
       }
       return true;
     });
-  }, [selectedGrade, selectedSection, sexFilter, statusFilter, searchQuery]);
+  }, [selectedGrade, selectedSection, sexFilter, statusFilter, searchQuery, isAuthorized, isMasterCreator, isRegistrarSHS, isRegistrarJHS, isAdviser, assignedSectionsForUser]);
 
   const copyToClipboard = (text: string, lrn: string) => {
     navigator.clipboard.writeText(text);
@@ -139,6 +214,32 @@ export const LNNCHSMasterLISDirectorySearch: React.FC<Props> = ({ onSelectStuden
     document.body.removeChild(link);
   };
 
+  if (!isAuthorized) {
+    return (
+      <div className="bg-white rounded-3xl border-2 border-red-900/20 shadow-xl overflow-hidden p-8 text-center space-y-4">
+        <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto text-red-600">
+          <ShieldCheck className="w-8 h-8" />
+        </div>
+        <h3 className="text-xl font-black text-red-900 uppercase">Access Restricted: LIS Security Protocol Active</h3>
+        <p className="text-sm text-stone-600 max-w-lg mx-auto leading-relaxed">
+          The DepEd Learner Information System (LIS) Student Records directory is strictly confidential. Only authorized personnel are permitted to view student rosters and records:
+        </p>
+        <div className="max-w-md mx-auto bg-stone-50 border border-stone-200 rounded-2xl p-4 text-left text-xs text-stone-700 space-y-2">
+          <p className="font-bold text-stone-900 border-b border-stone-200 pb-1.5 mb-1.5 uppercase tracking-wide">Authorized Personnel Roles:</p>
+          <p>• <strong>School Registrar SHS</strong> (Sir Fiel Robinson) — SHS Student Records only</p>
+          <p>• <strong>School Registrar JHS</strong> (Maam Edalyn Olis) — JHS Student Records only</p>
+          <p>• <strong>Section Advisers</strong> — Only their own assigned section records</p>
+          {isMasterCreator && (
+            <p>• <strong>Master Creator</strong> (Steaven Kinth D. Boiser) — Full unrestricted override</p>
+          )}
+        </div>
+        <p className="text-xs text-stone-500 italic mt-4">
+          All other modules (BOW, ILAW Generator, Summative Test Hub, Document Vault, Faculty Doors) remain fully accessible to you without restriction.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-3xl border-2 border-blue-900/20 shadow-xl overflow-hidden space-y-6">
       {/* ================= HEADER BANNER ================= */}
@@ -164,8 +265,8 @@ export const LNNCHSMasterLISDirectorySearch: React.FC<Props> = ({ onSelectStuden
               <Users className="w-8 h-8 text-amber-300" />
               <span>Consolidated Learner &amp; Section Master Database</span>
             </h2>
-            <p className="text-blue-200 text-sm max-w-3xl leading-relaxed">
-              Official roster explorer aligned with DepEd Learner Information System (LIS) references, Grade 7 to 12 section advisorships, room assignments, and 20-attribute standardized curriculum integration.
+            <p className="text-blue-100 text-xs font-bold max-w-3xl leading-relaxed bg-[#001c54]/40 border border-blue-400/20 px-4 py-2.5 rounded-xl">
+              ⚠️ <strong>Strictly Confidential LIS records accessible only by:</strong> SHS Registrar (Sir Fiel Robinson) for Grade 11-12, JHS Registrar (Ma'am Edalyn Olis) for Grade 7-10, and assigned section advisers for their own sections.
             </p>
           </div>
 

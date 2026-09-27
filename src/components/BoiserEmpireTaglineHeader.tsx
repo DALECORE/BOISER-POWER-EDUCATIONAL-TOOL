@@ -7,7 +7,7 @@ export const BoiserEmpireTaglineHeader: React.FC = () => {
 
   const speakTagline = () => {
     setIsSpeaking(true);
-    const text = "Maayong adlaw sa tanan! With utmost respect and humility, welcome to LNNCHS and Division Wide Boiser Empire System. B.O.I.S.E.R.: Building Organizational Intelligence for Sustainable Educational Results.";
+    const text = "Welcome and enjoy learning with Boiser Educational Resources.";
     speakWithCebuanoMaleVoice(text, {
       appendTagline: true,
       rate: 0.88,

@@ -473,7 +473,7 @@ export const LNNCHSSystemWorkbookModule: React.FC = () => {
                   const ecr = gradesEcr.find(e => e.lrn === s.lrn);
                   const subjects = SUBJECT_SETS[s.gradeLevel] || [];
                   return subjects.map((subj, sIdx) => {
-                    const g = ecr?.grades.find(x => x.subject === subj) || { term1: 75, term2: 75, term3: 75 };
+                    const g = ecr?.grades.find(x => x.subject === subj) || { term1: 0, term2: 0, term3: 0 };
                     const final = Math.round((g.term1 + g.term2 + g.term3) / 3);
                     return (
                       <tr key={`${s.lrn}-${subj}`} className="hover:bg-amber-50/40">

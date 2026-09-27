@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import {
-  Document,
+  Document as DocxDocument,
   Packer,
   Paragraph,
   TextRun,
@@ -44,7 +44,7 @@ export async function exportCompetenciesToDocx(
     day: 'numeric'
   });
 
-  const doc = new Document({
+  const doc = new DocxDocument({
     title: documentTitle,
     description: 'DepEd 2026 Combined Learning Competencies Document',
     styles: {

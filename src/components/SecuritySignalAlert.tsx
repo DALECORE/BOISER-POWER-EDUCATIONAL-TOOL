@@ -7,10 +7,10 @@ interface SecuritySignalAlertProps {
   currentUserName?: string;
 }
 
-export const SecuritySignalAlert: React.FC<SecuritySignalAlertProps> = ({
+export const SecuritySignalAlert = React.memo(({
   currentUserRole,
   currentUserName
-}) => {
+}: SecuritySignalAlertProps) => {
   const [breaches, setBreaches] = useState<SecurityBreachRecord[]>([]);
   const [latestBreach, setLatestBreach] = useState<SecurityBreachRecord | null>(null);
   const [isAlertVisible, setIsAlertVisible] = useState<boolean>(false);
@@ -37,22 +37,25 @@ export const SecuritySignalAlert: React.FC<SecuritySignalAlertProps> = ({
       setLatestBreach(breach);
       setIsAlertVisible(true);
       
-      // Sound audio alarm beep using Web Audio API
+      // Sound audio alarm beep using Web Audio API safely
       try {
-        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 note
-        osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.4);
-        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.4);
-        setIsAudioAlarmActive(true);
-        setTimeout(() => setIsAudioAlarmActive(false), 3000);
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (typeof AudioContextClass === 'function') {
+          const audioCtx = new AudioContextClass();
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 note
+          osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.4);
+          gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.4);
+          setIsAudioAlarmActive(true);
+          setTimeout(() => setIsAudioAlarmActive(false), 3000);
+        }
       } catch (err) {
         console.log('Audio Context error', err);
       }
@@ -131,11 +134,11 @@ export const SecuritySignalAlert: React.FC<SecuritySignalAlertProps> = ({
             <div className="space-y-1 text-center sm:text-left">
               <div className="flex items-center justify-center sm:justify-start gap-1.5 text-amber-300 font-black text-[11px] uppercase tracking-wider">
                 <Lock className="w-3.5 h-3.5" />
-                <span>INTRUDER IDENTITY PROTECTED &amp; SENT TO MASTER DOOR:</span>
+                <span>INTRUDER IDENTITY PROTECTED &amp; SENT TO ADMIN DOOR:</span>
               </div>
               <p className="text-[11px] text-stone-200 leading-snug">
                 An unauthorized user attempted to copy code or inspect database architecture. 
-                The violator's name and device telemetry have been <strong className="text-amber-300">revealed exclusively to Steaven Kinth D. Boiser</strong> in the Master Creator Door.
+                The violator's name and device telemetry have been <strong className="text-amber-300">logged exclusively for the System Administrator</strong> in the Secure Security Portal.
               </p>
             </div>
           )}
@@ -167,4 +170,4 @@ export const SecuritySignalAlert: React.FC<SecuritySignalAlertProps> = ({
       </div>
     </div>
   );
-};
+});

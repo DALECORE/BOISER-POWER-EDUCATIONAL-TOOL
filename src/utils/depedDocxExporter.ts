@@ -1,5 +1,5 @@
 import {
-  Document,
+  Document as DocxDocument,
   Packer,
   Paragraph,
   TextRun,
@@ -32,7 +32,7 @@ const HEADER_BG = 'F1F5F9';
 export async function exportILAWToDocx(plan: ILAWCompletePlan, fileName?: string): Promise<void> {
   const { header, matrix, activitySheets } = plan;
 
-  const doc = new Document({
+  const doc = new DocxDocument({
     title: `ILAW_${header.lesson.replace(/\s+/g, '_')}_${header.teacher.replace(/\s+/g, '_')}`,
     description: 'DepEd DO 3, s. 2026 Compliant ILAW Lesson Plan and LAS',
     styles: {
@@ -858,7 +858,7 @@ export async function generateILAWDocxBlob(
 ): Promise<{ blob: Blob; fileName: string }> {
   const { header, matrix, activitySheets } = plan;
 
-  const doc = new Document({
+  const doc = new DocxDocument({
     title: `ILAW_${header.lesson.replace(/\s+/g, '_')}_${header.teacher.replace(/\s+/g, '_')}`,
     description: 'DepEd DO 3, s. 2026 Compliant ILAW Lesson Plan and LAS',
     styles: {

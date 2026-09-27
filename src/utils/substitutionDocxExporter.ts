@@ -1,5 +1,5 @@
 import {
-  Document,
+  Document as DocxDocument,
   Packer,
   Paragraph,
   TextRun,
@@ -18,7 +18,7 @@ export async function exportSubstitutionToDocx(
     date: string;
   }
 ): Promise<void> {
-  const doc = new Document({
+  const doc = new DocxDocument({
     title: `Substitution_Plan_${data.subject.replace(/\s+/g, '_')}`,
     description: 'LNNCHS Official Substitution Form',
     styles: {

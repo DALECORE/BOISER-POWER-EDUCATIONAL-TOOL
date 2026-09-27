@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import {
-  Document,
+  Document as DocxDocument,
   Packer,
   Paragraph,
   TextRun,
@@ -38,7 +38,7 @@ const HEADER_BG = 'F1F5F9';
 export async function exportWeeklyPlanToDocx(plan: WeeklyLessonPlan): Promise<void> {
   const documentTitle = `DepEd_Weekly_Lesson_Plan_${plan.subject}_Grade_${plan.gradeLevel}_${plan.weekNumber}`.replace(/[^a-zA-Z0-9_\-]/g, '_');
 
-  const doc = new Document({
+  const doc = new DocxDocument({
     title: `Weekly Lesson Plan - ${plan.subject}`,
     description: 'DepEd 2026 One-Week Lesson Plan',
     sections: [

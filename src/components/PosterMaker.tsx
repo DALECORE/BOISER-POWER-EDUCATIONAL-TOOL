@@ -15,9 +15,16 @@ import {
   X,
   Share2,
   Rotate3d,
-  Check
+  Check,
+  Eye,
+  Presentation,
+  FileText,
+  FileSpreadsheet
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { exportILAWToPptx } from '../utils/depedPptxExporter';
+import { exportLnnchsSFToExcel, exportLnnchsSFToWord, exportLnnchsSFToPdf, LNNCHS_DEFAULT_CONFIG } from '../utils/lnnchsSchoolFormsExporter';
+import { LnnchsDoorResultPreviewModal, PreviewItemData } from './LnnchsDoorResultPreviewModal';
 
 interface PosterConfig {
   headline: string;
@@ -147,6 +154,8 @@ export const PosterMaker: React.FC = () => {
   const [isCreatingMode, setIsCreatingMode] = useState<boolean>(false);
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
   const [tiltAngle, setTiltAngle] = useState({ x: 0, y: 0 });
+  const [previewItemData, setPreviewItemData] = useState<PreviewItemData | null>(null);
+  const [isExportingSuite, setIsExportingSuite] = useState<string | null>(null);
 
   const applyPreset = (key: string) => {
     const preset = PRESETS[key];
@@ -695,29 +704,157 @@ export const PosterMaker: React.FC = () => {
               </div>
             )}
 
-            {/* EXPORT DRAWER */}
+            {/* UNIFIED DOCUMENT PROCESSING EXPORT DRAWER */}
             {activeDrawer === 'export' && (
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => {
-                    handleDownloadPNG();
-                    setActiveDrawer('none');
-                  }}
-                  className="p-3 rounded-xl bg-[#4A90D9] text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer min-h-[48px]"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Download PNG</span>
-                </button>
-                <button
-                  onClick={() => {
-                    window.print();
-                    setActiveDrawer('none');
-                  }}
-                  className="p-3 rounded-xl bg-[#F5F5F5] text-[#333333] font-bold text-xs flex items-center justify-center gap-2 border border-stone-300 cursor-pointer min-h-[48px]"
-                >
-                  <Printer className="w-4 h-4" />
-                  <span>Print / PDF</span>
-                </button>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black text-stone-900 uppercase">Unified Multi-Format Academic Exporter</span>
+                  <button
+                    onClick={() => {
+                      setPreviewItemData({
+                        title: config.headline || 'DepEd Academic Poster',
+                        code: 'POSTER_CANVAS',
+                        category: config.category || 'Infographic Poster & Signage',
+                        description: `${config.subhead} • Theme: ${config.colorTheme} • Teacher: ${config.teacherName}`,
+                        gradeLevel: 'Grade 11 & 12',
+                        adviserName: config.teacherName
+                      });
+                      setActiveDrawer('none');
+                    }}
+                    className="px-2.5 py-1 bg-amber-400 hover:bg-amber-300 text-stone-950 rounded-lg text-[10px] font-black flex items-center gap-1 cursor-pointer"
+                  >
+                    <Eye className="w-3 h-3 text-stone-950" />
+                    <span>Preview in Modal</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                  {/* PNG Image */}
+                  <button
+                    onClick={() => {
+                      handleDownloadPNG();
+                      setActiveDrawer('none');
+                    }}
+                    className="p-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-[11px] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download PNG</span>
+                  </button>
+
+                  {/* PPTX Presentation */}
+                  <button
+                    onClick={async () => {
+                      setIsExportingSuite('pptx');
+                      try {
+                        await exportILAWToPptx({
+                          header: {
+                            school: config.schoolName || 'LNNCHS',
+                            teacher: config.teacherName || 'Steaven Kinth Boiser',
+                            lesson: config.headline || 'DepEd Academic Poster',
+                            learningArea: config.category || 'Curriculum Infographics',
+                            contentEvaluator: 'Master Teacher II',
+                            languageEvaluator: 'Head Teacher III',
+                            formatEvaluator: 'Principal IV',
+                            division: 'Lanao del Norte',
+                            region: 'Region X',
+                            gradeLevelAndSection: 'Grade 11 & 12',
+                            gradeBand: '11-12',
+                            term: 1,
+                            bowWeek: 'Week 1',
+                            inclusiveTeachingDates: '2026-09-25',
+                            numberOfSessions: 4,
+                            references: ['DepEd MATATAG Guidelines', 'Official School Orders'],
+                            declarationOfAIUse: 'Assisted by Boiser Power Tools Engine'
+                          },
+                          presentationSlides: [
+                            {
+                              title: config.headline,
+                              badge: 'ACADEMIC POSTER DECK',
+                              bodyPoints: [
+                                config.subhead,
+                                ...config.bulletPoints.slice(0, 3)
+                              ]
+                            },
+                            {
+                              title: 'Core Values & Action Directives',
+                              badge: 'DEPED MATATAG',
+                              bodyPoints: [
+                                config.motto,
+                                'Verified compliance with DepEd Order No. 3, s. 2026',
+                                'Designed for classroom posting and academic symposiums'
+                              ]
+                            }
+                          ]
+                        } as any, `${(config.headline || 'Poster').replace(/[^a-zA-Z0-9]/g, '_')}_Deck.pptx`);
+                        setDownloadSuccess('✓ Downloaded Presentation Slide Deck (.pptx)!');
+                      } catch (e) {
+                        console.error(e);
+                      } finally {
+                        setIsExportingSuite(null);
+                        setActiveDrawer('none');
+                      }
+                    }}
+                    disabled={isExportingSuite === 'pptx'}
+                    className="p-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-[11px] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
+                  >
+                    <Presentation className="w-3.5 h-3.5 text-stone-950" />
+                    <span>{isExportingSuite === 'pptx' ? 'Exporting...' : 'Slide (.pptx)'}</span>
+                  </button>
+
+                  {/* Word Lesson Plan */}
+                  <button
+                    onClick={() => {
+                      exportLnnchsSFToWord('SF1', {
+                        ...LNNCHS_DEFAULT_CONFIG,
+                        title: config.headline,
+                        formName: config.headline,
+                        adviser: config.teacherName
+                      });
+                      setDownloadSuccess('✓ Downloaded Lesson Plan (.docx)!');
+                      setActiveDrawer('none');
+                    }}
+                    className="p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-[11px] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>Plan (.docx)</span>
+                  </button>
+
+                  {/* Excel Sheet */}
+                  <button
+                    onClick={() => {
+                      exportLnnchsSFToExcel('SF1', {
+                        ...LNNCHS_DEFAULT_CONFIG,
+                        title: config.headline,
+                        formName: config.headline,
+                        adviser: config.teacherName
+                      });
+                      setDownloadSuccess('✓ Downloaded Activity Log (.xlsx)!');
+                      setActiveDrawer('none');
+                    }}
+                    className="p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[11px] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                    <span>Sheet (.xlsx)</span>
+                  </button>
+
+                  {/* Print / PDF Vector */}
+                  <button
+                    onClick={() => {
+                      exportLnnchsSFToPdf('SF1', {
+                        ...LNNCHS_DEFAULT_CONFIG,
+                        title: config.headline,
+                        formName: config.headline,
+                        adviser: config.teacherName
+                      });
+                      setDownloadSuccess('✓ Generated Print PDF (.pdf)!');
+                      setActiveDrawer('none');
+                    }}
+                    className="p-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black text-[11px] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>Print (.pdf)</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -778,6 +915,15 @@ export const PosterMaker: React.FC = () => {
           <span className="text-[10px]">Settings</span>
         </button>
       </nav>
+
+      {/* Unified Output Preview Modal */}
+      {previewItemData && (
+        <LnnchsDoorResultPreviewModal
+          itemData={previewItemData}
+          isOpen={true}
+          onClose={() => setPreviewItemData(null)}
+        />
+      )}
     </div>
   );
 };

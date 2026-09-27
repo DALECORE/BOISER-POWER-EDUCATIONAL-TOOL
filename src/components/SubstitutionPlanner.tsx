@@ -1,10 +1,11 @@
 import React, { useState, useRef } from 'react';
-import { Printer, Edit3, Save, X, Eye, FileText, Download, Share2, Maximize, UserPlus } from 'lucide-react';
+import { Printer, Edit3, Save, X, Eye, FileText, Download, Share2, Maximize, UserPlus, Radio, AlertTriangle } from 'lucide-react';
 import { exportSubstitutionToDocx } from '../utils/substitutionDocxExporter';
 import { useAuth } from '../context/AuthContext';
+import { DepEdLdnOlsStatusIndicator } from './DepEdLdnOlsStatusIndicator';
 
 export const SubstitutionPlanner: React.FC = () => {
-  const { userRegistry, addSubstitutionPlan } = useAuth();
+  const { userRegistry, addSubstitutionPlan, currentUser } = useAuth();
   const [subject, setSubject] = useState('');
   const [section, setSection] = useState('');
   const [substituteEmail, setSubstituteEmail] = useState('');
@@ -119,7 +120,7 @@ export const SubstitutionPlanner: React.FC = () => {
               onChange={(e) => setSubstituteEmail(e.target.value)}
             >
               <option value="">-- Select Teacher --</option>
-              {userRegistry.map(u => (
+              {userRegistry.filter(u => u.isShs === currentUser.isShs).map(u => (
                 <option key={u.email} value={u.email}>{u.name} ({u.email})</option>
               ))}
               <option value="teacher.rox@deped.gov.ph">SHS Teacher Account (Mock)</option>

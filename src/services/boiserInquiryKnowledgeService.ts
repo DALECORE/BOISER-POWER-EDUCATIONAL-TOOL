@@ -81,11 +81,11 @@ export const processAppInquiry = (
       `🔒 **Security Protocol Engaged:**\n` +
       `• DepEd student LIS records and school data vault are strictly protected.\n` +
       `• In accordance with security protocol, your session is respectfully terminated with an automatic **5-hour account restriction**.\n` +
-      `• Re-authorization is strictly reserved for **Master Creator Steaven Kinth D. Boiser** (${MASTER_CREATOR_EMAIL}) via the Master Creator Dashboard.\n\n` +
+      `• Re-authorization is strictly reserved for the **Official System Administrator** via the Master Security Dashboard.\n\n` +
       `*We thank you for honoring data privacy and institutional integrity.*`;
 
     const speechText = 
-      `With all due respect and humility, ${userName}. The operation or query you entered involves protected core database schemas or system source files. In accordance with school security protocols, your session is respectfully logged out under a 5-hour restriction. Re-authorization is strictly upon the decision of Master Creator Steaven Kinth D. Boiser.`;
+      `With all due respect and humility, ${userName}. The operation or query you entered involves protected core database schemas or system source files. In accordance with school security protocols, your session is respectfully logged out under a 5-hour restriction. Re-authorization is strictly upon the decision of the Official System Administrator.`;
 
     return {
       title: 'Institutional Security Protocol Engaged',
@@ -96,12 +96,12 @@ export const processAppInquiry = (
     };
   }
 
-  // 2. LEADERSHIP DOORS (Principal III-A Ma'am Anisah, Asst. Principal II Ma'am Andot, Head Teacher Ma'am Calibo)
+  // 2. LEADERSHIP DOORS (Principal III Ma'am Anisah, Asst. Principal II Ma'am Andot, Head Teacher Ma'am Calibo)
   if (lower.includes('anisah') || lower.includes('andot') || lower.includes('calibo') || lower.includes('head') || lower.includes('principal')) {
     const markdown = 
       `🏛️ **LNNCHS Executive Leadership Doors Guide**\n\n` +
-      `1. **Ma'am Anisah (Principal III-A)**:\n` +
-      `   • Senior High School Executive Leadership, School Improvement Plan (SIP 2026–2029), and institutional compliance.\n\n` +
+      `1. **Ma'am Anisah (ANISAH A. SINAL, PRINCIPAL III)**:\n` +
+      `   • Secondary School Principal III • Senior High School Executive Leadership, School Improvement Plan (SIP 2026–2029), and institutional compliance.\n\n` +
       `2. **Ma'am Joan J. Andot (Asst. Principal II)**:\n` +
       `   • Senior High School Academic Affairs, teacher loading schedules, and classroom supervisory monitoring.\n\n` +
       `3. **Ma'am Alma "Almazing" L. Calibo (Head Teacher)**:\n` +
@@ -109,7 +109,7 @@ export const processAppInquiry = (
       `💡 *Access all three executive doors directly at the top of the Faculty Neighborhood view.*`;
 
     const speechText = 
-      `LNNCHS Executive School Leadership Doors. First is the Executive Door of Ma'am Anisah, Principal 3-A, leading Senior High School governance. Second is the Office of Ma'am Joan J. Andot, Asst. Principal II, managing teacher schedules and academic affairs. Third is the Office of Ma'am Alma Almazing L. Calibo, Head Teacher for Curriculum Quality Assurance and ILAW Lesson approvals.`;
+      `LNNCHS Executive School Leadership Doors. First is the Executive Door of Ma'am Anisah, Principal 3, leading Senior High School governance. Second is the Office of Ma'am Joan J. Andot, Asst. Principal II, managing teacher schedules and academic affairs. Third is the Office of Ma'am Alma Almazing L. Calibo, Head Teacher for Curriculum Quality Assurance and ILAW Lesson approvals.`;
 
     return {
       title: 'Executive Leadership Doors',
@@ -224,7 +224,7 @@ export const processAppInquiry = (
     `🌟 **Welcome to LNNCHS Power Education App — Operational Overview**\n\n` +
     `Created with dedication and excellence by **Master Creator Steaven Kinth D. Boiser**.\n\n` +
     `**Key Activities & Features Available:**\n` +
-    `1. **Faculty Neighborhood & Administration Doors**: Executive access for Ma'am Anisah (Principal III-A), Ma'am Andot (Asst. Principal II), Ma'am Calibo (Head Teacher), and resident advisers.\n` +
+    `1. **Faculty Neighborhood & Administration Doors**: Executive access for Ma'am Anisah (ANISAH A. SINAL, PRINCIPAL III), Ma'am Andot (Asst. Principal II), Ma'am Calibo (Head Teacher), and resident advisers.\n` +
     `2. **Three-Term Grading Engine**: Complete SF1–SF10 automation under DepEd Order No. 9, s. 2026.\n` +
     `3. **ILAW Exemplar Generator**: 4-day Daily Lesson Log generator with learning competency mapping.\n` +
     `4. **Student Document Vault**: Secure, biometric and encrypted archive for Form 137 and student credentials.\n` +

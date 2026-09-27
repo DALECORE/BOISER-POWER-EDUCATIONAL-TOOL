@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import {
-  Document,
+  Document as DocxDocument,
   Packer,
   Paragraph,
   TextRun,
@@ -33,6 +33,9 @@ export interface SchoolFormRecord {
   height?: number;
   weight?: number;
   bmi?: number;
+  term1?: number;
+  term2?: number;
+  term3?: number;
   q1?: number;
   q2?: number;
   q3?: number;
@@ -60,6 +63,19 @@ export interface SchoolFormConfig {
   records: SchoolFormRecord[];
 }
 
+// Dynamically compute Honors Classification based ONLY on Term 1, 2, and 3 Average
+export function getHonorsClassification(rec: SchoolFormRecord): string {
+  const t1 = rec.term1 || rec.q1 || 90;
+  const t2 = rec.term2 || rec.q2 || 90;
+  const t3 = rec.term3 || rec.q3 || 90;
+  const avg = Math.round((t1 + t2 + t3) / 3);
+  
+  if (avg >= 98) return 'With Highest Honors';
+  if (avg >= 95) return 'With High Honors';
+  if (avg >= 90) return 'With Honors';
+  return 'Passed';
+}
+
 export const LNNCHS_DEFAULT_CONFIG: SchoolFormConfig = {
   formId: 'SF1',
   formName: 'School Register',
@@ -75,32 +91,39 @@ export const LNNCHS_DEFAULT_CONFIG: SchoolFormConfig = {
   section: 'Einstein (STEM / Life and Career Skills)',
   trackStrand: 'Academic Track - STEM / DO 3, s. 2026',
   adviser: 'STEAVEN KINTH D. BOISER, T-III',
-  schoolHead: 'ANISAH A. SINAL, Principal IV',
+  schoolHead: 'ANISAH A. SINAL, PRINCIPAL III',
   records: [
-    { lrn: '136514110001', name: 'ABELLA, Christian Dave M.', sex: 'M', birthDate: '2009-03-15', age: 17, motherTongue: 'Cebuano', address: 'Poblacion, Tubod, Lanao del Norte', parentGuardian: 'Maria Abella', contact: '09171234501', daysPresent: 198, daysAbsent: 2, genAverage: 92, actionTaken: 'PROMOTED', nutritionalStatus: 'Normal', height: 168, weight: 58, bmi: 20.5, q1: 91, q2: 92, q3: 93, q4: 92, remarks: 'Consistent Honor Roll' },
-    { lrn: '136514110002', name: 'BACALSO, John Michael P.', sex: 'M', birthDate: '2009-07-22', age: 17, motherTongue: 'Cebuano', address: 'Baroy, Lanao del Norte', parentGuardian: 'Roberto Bacalso', contact: '09171234502', daysPresent: 195, daysAbsent: 5, genAverage: 89, actionTaken: 'PROMOTED', nutritionalStatus: 'Normal', height: 172, weight: 62, bmi: 20.9, q1: 88, q2: 89, q3: 90, q4: 89, remarks: 'With Honors' },
-    { lrn: '136514110003', name: 'CABILOGAN, Mark Anthony T.', sex: 'M', birthDate: '2009-11-04', age: 16, motherTongue: 'Maranao', address: 'Kolambugan, Lanao del Norte', parentGuardian: 'Fatima Cabilogan', contact: '09171234503', daysPresent: 190, daysAbsent: 10, genAverage: 86, actionTaken: 'PROMOTED', nutritionalStatus: 'Normal', height: 165, weight: 54, bmi: 19.8, q1: 85, q2: 86, q3: 87, q4: 86, remarks: 'Passed' },
-    { lrn: '136514110004', name: 'DIMAPORO, Al-Rashid K.', sex: 'M', birthDate: '2009-01-18', age: 17, motherTongue: 'Maranao', address: 'Tubod, Lanao del Norte', parentGuardian: 'Ibrahim Dimaporo', contact: '09171234504', daysPresent: 200, daysAbsent: 0, genAverage: 95, actionTaken: 'PROMOTED', nutritionalStatus: 'Normal', height: 175, weight: 65, bmi: 21.2, q1: 94, q2: 95, q3: 96, q4: 95, remarks: 'With High Honors' },
-    { lrn: '136514110005', name: 'ESPAÑOL, Vince Nicole G.', sex: 'M', birthDate: '2009-08-30', age: 17, motherTongue: 'Cebuano', address: 'Lala, Lanao del Norte', parentGuardian: 'Elena Español', contact: '09171234505', daysPresent: 188, daysAbsent: 12, genAverage: 83, actionTaken: 'PROMOTED', nutritionalStatus: 'Normal', height: 169, weight: 57, bmi: 19.9, q1: 82, q2: 83, q3: 84, q4: 83, remarks: 'Passed' },
-    { lrn: '136514110006', name: 'FUENTES, Princess Mae S.', sex: 'F', birthDate: '2009-05-12', age: 17, motherTongue: 'Cebuano', address: 'Poblacion, Tubod, Lanao del Norte', parentGuardian: 'Rosario Fuentes', contact: '09171234506', daysPresent: 200, daysAbsent: 0, genAverage: 96, actionTaken: 'PROMOTED', nutritionalStatus: 'Normal', height: 160, weight: 50, bmi: 19.5, q1: 95, q2: 96, q3: 97, q4: 96, remarks: 'With High Honors' },
-    { lrn: '136514110007', name: 'GOMEZ, Mary Grace C.', sex: 'F', birthDate: '2009-09-19', age: 17, motherTongue: 'Cebuano', address: 'Magsaysay, Tubod, LDN', parentGuardian: 'Antonio Gomez', contact: '09171234507', daysPresent: 197, daysAbsent: 3, genAverage: 91, actionTaken: 'PROMOTED', nutritionalStatus: 'Normal', height: 158, weight: 48, bmi: 19.2, q1: 90, q2: 91, q3: 92, q4: 91, remarks: 'With Honors' },
-    { lrn: '136514110008', name: 'HADJI, Sittie Ayna M.', sex: 'F', birthDate: '2009-12-05', age: 16, motherTongue: 'Maranao', address: 'Tubod, Lanao del Norte', parentGuardian: 'Nasrudin Hadji', contact: '09171234508', daysPresent: 199, daysAbsent: 1, genAverage: 94, actionTaken: 'PROMOTED', nutritionalStatus: 'Normal', height: 162, weight: 52, bmi: 19.8, q1: 93, q2: 94, q3: 95, q4: 94, remarks: 'With High Honors' },
-    { lrn: '136514110009', name: 'IBARRA, Kimberly Joy R.', sex: 'F', birthDate: '2009-04-28', age: 17, motherTongue: 'Cebuano', address: 'Baroy, Lanao del Norte', parentGuardian: 'Fernando Ibarra', contact: '09171234509', daysPresent: 192, daysAbsent: 8, genAverage: 88, actionTaken: 'PROMOTED', nutritionalStatus: 'Normal', height: 157, weight: 47, bmi: 19.1, q1: 87, q2: 88, q3: 89, q4: 88, remarks: 'With Honors' },
-    { lrn: '136514110010', name: 'JALOSJOS, Stephanie Nicole B.', sex: 'F', birthDate: '2009-10-14', age: 16, motherTongue: 'Cebuano', address: 'Tubod, Lanao del Norte', parentGuardian: 'Corazon Jalosjos', contact: '09171234510', daysPresent: 196, daysAbsent: 4, genAverage: 90, actionTaken: 'PROMOTED', nutritionalStatus: 'Normal', height: 161, weight: 51, bmi: 19.7, q1: 89, q2: 90, q3: 91, q4: 90, remarks: 'With Honors' }
+    { lrn: '136514110001', name: 'ABELLA, Christian Dave M.', sex: 'M', birthDate: '2009-03-15', age: 17, motherTongue: 'Cebuano', address: 'Poblacion, Tubod, Lanao del Norte', parentGuardian: 'Maria Abella', contact: '09171234501', daysPresent: 198, daysAbsent: 2, genAverage: 92, actionTaken: 'PROMOTED', nutritionalStatus: 'Normal', height: 168, weight: 58, bmi: 20.5, term1: 91, term2: 92, term3: 93, remarks: 'With Honors' },
+    { lrn: '136514110002', name: 'BACALSO, John Michael P.', sex: 'M', birthDate: '2009-07-22', age: 17, motherTongue: 'Cebuano', address: 'Baroy, Lanao del Norte', parentGuardian: 'Roberto Bacalso', contact: '09171234502', daysPresent: 195, daysAbsent: 5, genAverage: 89, actionTaken: 'PROMOTED', nutritionalStatus: 'Normal', height: 172, weight: 62, bmi: 20.9, term1: 88, term2: 89, term3: 90, remarks: 'Passed' },
+    { lrn: '136514110003', name: 'CABILOGAN, Mark Anthony T.', sex: 'M', birthDate: '2009-11-04', age: 16, motherTongue: 'Maranao', address: 'Kolambugan, Lanao del Norte', parentGuardian: 'Fatima Cabilogan', contact: '09171234503', daysPresent: 190, daysAbsent: 10, genAverage: 86, actionTaken: 'PROMOTED', nutritionalStatus: 'Normal', height: 165, weight: 54, bmi: 19.8, term1: 85, term2: 86, term3: 87, remarks: 'Passed' },
+    { lrn: '136514110004', name: 'DIMAPORO, Al-Rashid K.', sex: 'M', birthDate: '2009-01-18', age: 17, motherTongue: 'Maranao', address: 'Tubod, Lanao del Norte', parentGuardian: 'Ibrahim Dimaporo', contact: '09171234504', daysPresent: 200, daysAbsent: 0, genAverage: 95, actionTaken: 'PROMOTED', nutritionalStatus: 'Normal', height: 175, weight: 65, bmi: 21.2, term1: 94, term2: 95, term3: 96, remarks: 'With High Honors' },
+    { lrn: '136514110005', name: 'ESPAÑOL, Vince Nicole G.', sex: 'M', birthDate: '2009-08-30', age: 17, motherTongue: 'Cebuano', address: 'Lala, Lanao del Norte', parentGuardian: 'Elena Español', contact: '09171234505', daysPresent: 188, daysAbsent: 12, genAverage: 83, actionTaken: 'PROMOTED', nutritionalStatus: 'Normal', height: 169, weight: 57, bmi: 19.9, term1: 82, term2: 83, term3: 84, remarks: 'Passed' },
+    { lrn: '136514110006', name: 'FUENTES, Princess Mae S.', sex: 'F', birthDate: '2009-05-12', age: 17, motherTongue: 'Cebuano', address: 'Poblacion, Tubod, Lanao del Norte', parentGuardian: 'Rosario Fuentes', contact: '09171234506', daysPresent: 200, daysAbsent: 0, genAverage: 96, actionTaken: 'PROMOTED', nutritionalStatus: 'Normal', height: 160, weight: 50, bmi: 19.5, term1: 95, term2: 96, term3: 97, remarks: 'With High Honors' },
+    { lrn: '136514110007', name: 'GOMEZ, Mary Grace C.', sex: 'F', birthDate: '2009-09-19', age: 17, motherTongue: 'Cebuano', address: 'Magsaysay, Tubod, LDN', parentGuardian: 'Antonio Gomez', contact: '09171234507', daysPresent: 197, daysAbsent: 3, genAverage: 91, actionTaken: 'PROMOTED', nutritionalStatus: 'Normal', height: 158, weight: 48, bmi: 19.2, term1: 90, term2: 91, term3: 92, remarks: 'With Honors' },
+    { lrn: '136514110008', name: 'HADJI, Sittie Ayna M.', sex: 'F', birthDate: '2009-12-05', age: 16, motherTongue: 'Maranao', address: 'Tubod, Lanao del Norte', parentGuardian: 'Nasrudin Hadji', contact: '09171234508', daysPresent: 199, daysAbsent: 1, genAverage: 94, actionTaken: 'PROMOTED', nutritionalStatus: 'Normal', height: 162, weight: 52, bmi: 19.8, term1: 93, term2: 94, term3: 95, remarks: 'With Honors' },
+    { lrn: '136514110009', name: 'IBARRA, Kimberly Joy R.', sex: 'F', birthDate: '2009-04-28', age: 17, motherTongue: 'Cebuano', address: 'Baroy, Lanao del Norte', parentGuardian: 'Fernando Ibarra', contact: '09171234509', daysPresent: 192, daysAbsent: 8, genAverage: 88, actionTaken: 'PROMOTED', nutritionalStatus: 'Normal', height: 157, weight: 47, bmi: 19.1, term1: 87, term2: 88, term3: 89, remarks: 'Passed' },
+    { lrn: '136514110010', name: 'JALOSJOS, Stephanie Nicole B.', sex: 'F', birthDate: '2009-10-14', age: 16, motherTongue: 'Cebuano', address: 'Tubod, Lanao del Norte', parentGuardian: 'Corazon Jalosjos', contact: '09171234510', daysPresent: 196, daysAbsent: 4, genAverage: 90, actionTaken: 'PROMOTED', nutritionalStatus: 'Normal', height: 161, weight: 51, bmi: 19.7, term1: 89, term2: 90, term3: 91, remarks: 'With Honors' }
   ]
 };
 
 export const LNNCHS_SCHOOL_FORMS_LIST = [
-  { id: 'SF1', name: 'SF1 - School Register', desc: 'Masterlist of enrolled learners, demographic profiles, LRNs, and guardians (SY 2026-2027).' },
-  { id: 'SF2', name: 'SF2 - Daily Attendance Report', desc: 'Daily attendance logs, monthly present/absent tallies, and percentage of attendance.' },
-  { id: 'SF3', name: 'SF3 - Books Issued and Returned', desc: 'Textbook, module, and LAS tracking per student, condition and accountability report.' },
-  { id: 'SF4', name: 'SF4 - Monthly Movement and Attendance', desc: 'Monthly summary of transferred in/out, dropouts, and net active enrollment.' },
-  { id: 'SF5', name: 'SF5 - Report on Promotion & Achievement', desc: 'Year-end general averages, promotion status (Promoted, Conditional, Retained).' },
-  { id: 'SF6', name: 'SF6 - Summarized Report on Promotion', desc: 'School-level consolidated promotion statistics across all Grade 7–12 sections.' },
-  { id: 'SF7', name: 'SF7 - School Personnel Assignment List', desc: 'Faculty inventory, plantilla positions, degree credentials, and weekly subject loads.' },
-  { id: 'SF8', name: 'SF8 - Health and Nutritional Status', desc: 'Learner baseline and endline BMI, weight/height metrics, and nutritional categorization.' },
-  { id: 'SF9', name: 'SF9 - Learner Progress Report Card (Form 138)', desc: 'Official student quarterly report card with Core Values and attendance matrices.' },
-  { id: 'SF10', name: 'SF10 - Permanent Academic Record (Form 137)', desc: 'Cumulative senior high permanent academic transcript for college and employment.' }
+  { id: 'SF1-7', name: 'School Forms 1-7 (Single File Editable)', desc: 'Consolidated master workbook containing SF1 through SF7 in individual sheets.' },
+  { id: 'SF1', name: 'SF 1 – Students’ Registration', desc: 'Masterlist of enrolled learners, demographic profiles, LRNs, and guardians.' },
+  { id: 'SF2', name: 'SF 2 – Daily Attendance', desc: 'Daily attendance logs and monthly present/absent tallies.' },
+  { id: 'SF3', name: 'SF 3 – Books Issued and Returned', desc: 'Textbook, module, and LAS tracking per student.' },
+  { id: 'SF4', name: 'SF 4 – Monthly Learner Movements and Attendance', desc: 'Monthly summary of transferred in/out, dropouts, and net active enrollment.' },
+  { id: 'SF5', name: 'SF 5 – Reports on Promotion, Learning Progress, and Achievement', desc: 'Year-end general averages and promotion status.' },
+  { id: 'SF5-K', name: 'SF 5 – Report on Promotion and Level of Proficiency for Kinder', desc: 'Promotion reports specifically for Kindergarten proficiency levels.' },
+  { id: 'SF6', name: 'SF 6 – Summarized Reports on Promotion, Learning Progress, and Achievement', desc: 'School-level consolidated promotion statistics.' },
+  { id: 'SF7', name: 'SF 7 – School Personnel Assignment List and Basic Profile', desc: 'Faculty inventory, plantilla positions, and teaching loads.' },
+  { id: 'SF8', name: 'SF 8 – Learner Basic Health and Nutrition Report', desc: 'Learner baseline and endline BMI and nutritional status.' },
+  { id: 'SF9', name: 'SF 9 – Learner’s Progress Report Card Three-Term', desc: 'Official student quarterly report card for SHS.' },
+  { id: 'SF10-E', name: 'SF10 – Learner’s Permanent Academic Record for Elementary', desc: 'Permanent transcript for Elementary learners.' },
+  { id: 'SF10-J', name: 'SF10 – Learner’s Permanent Academic Record for Junior High', desc: 'Permanent transcript for Junior High learners.' },
+  { id: 'SF10-S', name: 'SF10 – Learner’s Permanent Academic Record for Senior High', desc: 'Permanent transcript for Senior High learners.' },
+  { id: 'SF10-M', name: 'Revised DepEd SF10 MATATAG', desc: 'The new official revised SF10 format for MATATAG curriculum.' },
+  { id: 'SHS-F', name: 'Senior High Forms', desc: 'Miscellaneous specialized forms for Senior High School.' },
+  { id: 'ALS', name: 'Alternative Learning System (ALS) Forms', desc: 'Official documentation for ALS programs.' }
 ];
 
 // ==========================================
@@ -144,18 +167,24 @@ export function exportLnnchsSFToExcel(formId: string, config: SchoolFormConfig =
     config.records.forEach((r, idx) => {
       rows.push([idx + 1, r.lrn, r.name, r.sex, '2026-08-18', 'ACTIVE', 'N/A', 'Regular Enrollee - STEM', 'Confirmed']);
     });
-  } else if (formId === 'SF5') {
-    rows.push(['No.', 'LRN', 'Learner Full Name', 'Sex', 'Q1', 'Q2', 'Q3', 'Q4', 'General Average', 'Action Taken', 'Level of Progress']);
+  } else if (formId === 'SF5' || formId === 'SF5-K') {
+    rows.push(['No.', 'LRN', 'Learner Full Name', 'Sex', 'Term 1', 'Term 2', 'Term 3', 'General Average', 'Action Taken', 'Level of Progress / Distinction']);
     config.records.forEach((r, idx) => {
-      const avg = r.genAverage || 90;
-      const desc = avg >= 90 ? 'Outstanding' : avg >= 85 ? 'Very Satisfactory' : 'Satisfactory';
-      rows.push([idx + 1, r.lrn, r.name, r.sex, r.q1 || 90, r.q2 || 90, r.q3 || 90, r.q4 || 90, avg, r.actionTaken || 'PROMOTED', desc]);
+      const t1 = r.term1 || r.q1 || 90;
+      const t2 = r.term2 || r.q2 || 90;
+      const t3 = r.term3 || r.q3 || 90;
+      const avg = Math.round((t1 + t2 + t3) / 3);
+      const distinction = getHonorsClassification(r);
+      rows.push([idx + 1, r.lrn, r.name, r.sex, t1, t2, t3, avg, r.actionTaken || 'PROMOTED', distinction]);
     });
   } else if (formId === 'SF6') {
     rows.push(['No.', 'LRN', 'Learner Full Name', 'Sex', 'Grade & Track', 'Final General Average', 'Promotion Status', 'Honors / Distinction', 'Next Grade Level']);
     config.records.forEach((r, idx) => {
-      const avg = r.genAverage || 91;
-      const distinction = avg >= 95 ? 'With High Honors' : avg >= 90 ? 'With Honors' : 'Passed';
+      const t1 = r.term1 || r.q1 || 91;
+      const t2 = r.term2 || r.q2 || 91;
+      const t3 = r.term3 || r.q3 || 91;
+      const avg = Math.round((t1 + t2 + t3) / 3);
+      const distinction = getHonorsClassification(r);
       rows.push([idx + 1, r.lrn, r.name, r.sex, `${config.gradeLevel} - STEM`, avg, 'PROMOTED', distinction, 'Grade 12']);
     });
   } else if (formId === 'SF7') {
@@ -172,7 +201,7 @@ export function exportLnnchsSFToExcel(formId: string, config: SchoolFormConfig =
     config.records.forEach((r, idx) => {
       rows.push([idx + 1, r.lrn, r.name, r.sex, 92, 91, 94, 91, 90, 95, r.genAverage || 92, 'Always Observed (AO)']);
     });
-  } else if (formId === 'SF10') {
+  } else if (formId.startsWith('SF10')) {
     rows.push(['No.', 'LRN', 'Learner Full Name', 'Sex', 'Elementary School', 'Elem Gen Average', 'JHS School Completed', 'JHS Gen Average', 'SHS Track / Strand', 'Academic Status']);
     config.records.forEach((r, idx) => {
       rows.push([idx + 1, r.lrn, r.name, r.sex, 'Tubod Central Elementary School', 91.5, 'LNNCHS Junior High School', 91.8, 'Academic Track - STEM', 'Eligible for Grade 12']);
@@ -256,7 +285,18 @@ export function exportLnnchsSFToPdf(formId: string, config: SchoolFormConfig = L
   curY += 6;
 
   // Table Headers
-  const cols = [
+  const cols = formId === 'SF9' ? [
+    { title: 'No.', width: 8 },
+    { title: 'Learner Name', width: 50 },
+    { title: 'Gen Math', width: 18 },
+    { title: 'Science', width: 18 },
+    { title: 'LCS', width: 18 },
+    { title: 'Oral Comm', width: 18 },
+    { title: 'Filipino', width: 18 },
+    { title: 'PE/Health', width: 18 },
+    { title: 'Gen Ave', width: 18 },
+    { title: 'Core Values', width: 25 }
+  ] : [
     { title: 'No.', width: 10 },
     { title: 'Learner Reference No. (LRN)', width: 34 },
     { title: 'Learner Name (Last, First, MI)', width: 55 },
@@ -275,7 +315,7 @@ export function exportLnnchsSFToPdf(formId: string, config: SchoolFormConfig = L
   doc.line(14, curY + 6, pageWidth - 14, curY + 6);
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
+  doc.setFontSize(formId === 'SF9' ? 6 : 7.5);
   doc.setTextColor(0, 39, 118);
   cols.forEach(c => {
     doc.text(c.title, startX + 1.5, curY + 4.2);
@@ -295,28 +335,51 @@ export function exportLnnchsSFToPdf(formId: string, config: SchoolFormConfig = L
     }
     doc.line(14, curY + 5.5, pageWidth - 14, curY + 5.5);
 
-    doc.text(String(idx + 1), rowX + 2, curY + 4);
-    rowX += cols[0].width;
-    doc.setFont('courier', 'bold');
-    doc.text(rec.lrn, rowX + 1.5, curY + 4);
-    doc.setFont('helvetica', 'normal');
-    rowX += cols[1].width;
-    doc.text(rec.name, rowX + 1.5, curY + 4);
-    rowX += cols[2].width;
-    doc.text(rec.sex, rowX + 3, curY + 4);
-    rowX += cols[3].width;
-    doc.text(String(rec.daysPresent || 196), rowX + 6, curY + 4);
-    rowX += cols[4].width;
-    doc.setFont('helvetica', 'bold');
-    doc.text(String(rec.genAverage || 91), rowX + 6, curY + 4);
-    doc.setFont('helvetica', 'normal');
-    rowX += cols[5].width;
-    doc.setTextColor(rec.actionTaken === 'PROMOTED' ? 0 : 180, rec.actionTaken === 'PROMOTED' ? 120 : 0, 0);
-    doc.text(rec.actionTaken || 'PROMOTED', rowX + 2, curY + 4);
-    doc.setTextColor(30, 30, 30);
-    rowX += cols[6].width;
-    doc.text(rec.remarks || 'Mastered - DO 3, s. 2026 Standards', rowX + 1.5, curY + 4);
-
+    if (formId === 'SF9') {
+        doc.text(String(idx + 1), rowX + 2, curY + 4);
+        rowX += cols[0].width;
+        doc.text(rec.name, rowX + 1.5, curY + 4);
+        rowX += cols[1].width;
+        doc.text('92', rowX + 4, curY + 4);
+        rowX += cols[2].width;
+        doc.text('91', rowX + 4, curY + 4);
+        rowX += cols[3].width;
+        doc.text('94', rowX + 4, curY + 4);
+        rowX += cols[4].width;
+        doc.text('91', rowX + 4, curY + 4);
+        rowX += cols[5].width;
+        doc.text('90', rowX + 4, curY + 4);
+        rowX += cols[6].width;
+        doc.text('95', rowX + 4, curY + 4);
+        rowX += cols[7].width;
+        doc.setFont('helvetica', 'bold');
+        doc.text(String(rec.genAverage || 91), rowX + 6, curY + 4);
+        doc.setFont('helvetica', 'normal');
+        rowX += cols[8].width;
+        doc.text('AO', rowX + 4, curY + 4);
+    } else {
+        doc.text(String(idx + 1), rowX + 2, curY + 4);
+        rowX += cols[0].width;
+        doc.setFont('courier', 'bold');
+        doc.text(rec.lrn, rowX + 1.5, curY + 4);
+        doc.setFont('helvetica', 'normal');
+        rowX += cols[1].width;
+        doc.text(rec.name, rowX + 1.5, curY + 4);
+        rowX += cols[2].width;
+        doc.text(rec.sex, rowX + 3, curY + 4);
+        rowX += cols[3].width;
+        doc.text(String(rec.daysPresent || 196), rowX + 6, curY + 4);
+        rowX += cols[4].width;
+        doc.setFont('helvetica', 'bold');
+        doc.text(String(rec.genAverage || 91), rowX + 6, curY + 4);
+        doc.setFont('helvetica', 'normal');
+        rowX += cols[5].width;
+        doc.setTextColor(rec.actionTaken === 'PROMOTED' ? 0 : 180, rec.actionTaken === 'PROMOTED' ? 120 : 0, 0);
+        doc.text(rec.actionTaken || 'PROMOTED', rowX + 2, curY + 4);
+        doc.setTextColor(30, 30, 30);
+        rowX += cols[6].width;
+        doc.text(rec.remarks || 'Mastered - DO 3, s. 2026 Standards', rowX + 1.5, curY + 4);
+    }
     curY += 5.5;
   });
 
@@ -340,11 +403,48 @@ export function exportLnnchsSFToPdf(formId: string, config: SchoolFormConfig = L
 }
 
 // ==========================================
+// 4. BULK EXCEL GENERATOR (SF 1-7)
+// ==========================================
+export function exportAllSf1To7ToExcel(config: SchoolFormConfig = LNNCHS_DEFAULT_CONFIG) {
+  const wb = XLSX.utils.book_new();
+  
+  ['SF1', 'SF2', 'SF3', 'SF4', 'SF5', 'SF6', 'SF7'].forEach(formId => {
+    const rows: any[][] = [];
+    rows.push(['REPUBLIC OF THE PHILIPPINES']);
+    rows.push(['DEPARTMENT OF EDUCATION - LNNCHS OFFICIAL MASTER WORKBOOK']);
+    rows.push([`FORM: ${formId} - SY ${config.schoolYear}`]);
+    rows.push([]);
+    
+    // Simple header for bulk
+    if (formId === 'SF1') rows.push(['No.', 'LRN', 'Name', 'Sex', 'Address']);
+    else if (formId === 'SF2') rows.push(['No.', 'LRN', 'Name', 'Attendance']);
+    else rows.push(['No.', 'LRN', 'Name', 'Details']);
+
+    config.records.forEach((r, idx) => {
+      rows.push([idx + 1, r.lrn, r.name, '...']);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, formId);
+  });
+
+  XLSX.writeFile(wb, `LNNCHS_SF1-7_BULK_SY2026-2027.xlsx`);
+}
+
+// ==========================================
 // 3. WORD (.DOCX) GENERATOR FOR LNNCHS SF
 // ==========================================
 export async function exportLnnchsSFToWord(formId: string, config: SchoolFormConfig = LNNCHS_DEFAULT_CONFIG) {
   const tableHeaderRow = new TableRow({
-    children: [
+    children: formId === 'SF9' ? [
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'No.', bold: true, size: 18 })] })], width: { size: 500, type: WidthType.DXA } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Learner Name', bold: true, size: 18 })] })], width: { size: 2500, type: WidthType.DXA } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'GMath', bold: true, size: 18 })] })], width: { size: 800, type: WidthType.DXA } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Sci', bold: true, size: 18 })] })], width: { size: 800, type: WidthType.DXA } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'LCS', bold: true, size: 18 })] })], width: { size: 800, type: WidthType.DXA } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Ave', bold: true, size: 18 })] })], width: { size: 800, type: WidthType.DXA } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Remarks', bold: true, size: 18 })] })], width: { size: 1500, type: WidthType.DXA } }),
+    ] : [
       new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'No.', bold: true, size: 18 })] })], width: { size: 500, type: WidthType.DXA } }),
       new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'LRN', bold: true, size: 18 })] })], width: { size: 1800, type: WidthType.DXA } }),
       new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Learner Full Name', bold: true, size: 18 })] })], width: { size: 3000, type: WidthType.DXA } }),
@@ -357,7 +457,15 @@ export async function exportLnnchsSFToWord(formId: string, config: SchoolFormCon
 
   const recordRows = config.records.map((r, idx) => {
     return new TableRow({
-      children: [
+      children: formId === 'SF9' ? [
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(idx + 1), size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: r.name, size: 18, bold: true })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '92', size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '91', size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '94', size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(r.genAverage || 91), size: 18, bold: true })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'AO', size: 18 })] })] }),
+      ] : [
         new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(idx + 1), size: 18 })] })] }),
         new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: r.lrn, size: 18, font: 'Courier New' })] })] }),
         new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: r.name, size: 18, bold: true })] })] }),
@@ -369,7 +477,7 @@ export async function exportLnnchsSFToWord(formId: string, config: SchoolFormCon
     });
   });
 
-  const doc = new Document({
+  const doc = new DocxDocument({
     sections: [{
       properties: {
         page: {

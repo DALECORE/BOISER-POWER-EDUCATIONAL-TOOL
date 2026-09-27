@@ -11,9 +11,14 @@ import {
   Table,
   CheckCircle2,
   Info,
-  Layers
+  Layers,
+  Eye,
+  Presentation
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { exportILAWToPptx } from '../utils/depedPptxExporter';
+import { exportLnnchsSFToExcel, exportLnnchsSFToWord, exportLnnchsSFToPdf, LNNCHS_DEFAULT_CONFIG } from '../utils/lnnchsSchoolFormsExporter';
+import { LnnchsDoorResultPreviewModal, PreviewItemData } from './LnnchsDoorResultPreviewModal';
 
 export interface FormulaOption {
   id: string;
@@ -126,6 +131,8 @@ export const ExcelGenerator: React.FC = () => {
   const [maxT2, setMaxT2] = useState(50);
   const [maxT3, setMaxT3] = useState(20);
   const [downloadNotice, setDownloadNotice] = useState<string | null>(null);
+  const [previewItemData, setPreviewItemData] = useState<PreviewItemData | null>(null);
+  const [isExportingSuite, setIsExportingSuite] = useState<string | null>(null);
 
   const toggleFormula = (id: string) => {
     setFormulas(prev =>
@@ -282,11 +289,100 @@ export const ExcelGenerator: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-2">
             <button
+              onClick={() => setPreviewItemData({
+                title: `Formula-Driven Gradebook — ${subject} (${term})`,
+                code: 'ECR_FORMULA_XLSX',
+                category: 'DepEd Official Gradebook & Class Record',
+                description: `Live formula-wired grade record for ${section} with active formulas (${formulas.filter(f => f.enabled).map(f => f.name).join(', ')}).`,
+                gradeLevel: section,
+                sectionName: section,
+                adviserName: teacher
+              })}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-400 hover:brightness-110 text-stone-950 font-black text-xs shadow-md transition cursor-pointer flex items-center gap-1.5"
+            >
+              <Eye className="w-4 h-4 text-stone-950" />
+              <span>Preview in Unified Modal</span>
+            </button>
+            <button
               onClick={handleExportXLSX}
               className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-1.5 border border-emerald-400"
             >
               <Download className="w-4 h-4 text-white" />
               <span>Download Live Formula .XLSX</span>
+            </button>
+            <button
+              onClick={async () => {
+                setIsExportingSuite('pptx');
+                try {
+                  await exportILAWToPptx({
+                    header: {
+                      school: 'LNNCHS (Lanao del Norte National Comprehensive High School)',
+                      teacher: teacher || 'Steaven Kinth Boiser',
+                      lesson: `${subject} — Grade Consultation Deck`,
+                      learningArea: subject,
+                      contentEvaluator: 'Master Teacher II',
+                      languageEvaluator: 'Head Teacher III',
+                      formatEvaluator: 'Principal IV',
+                      division: 'Lanao del Norte',
+                      region: 'Region X',
+                      gradeLevelAndSection: section,
+                      gradeBand: '11-12',
+                      term: 1,
+                      bowWeek: 'Quarterly Summary',
+                      inclusiveTeachingDates: '2026-09-25',
+                      numberOfSessions: 4,
+                      references: ['DepEd Order No. 009 & 015, s. 2026', 'Official ECR Guidelines'],
+                      declarationOfAIUse: 'Assisted by Boiser Power Tools Engine'
+                    },
+                    presentationSlides: [
+                      {
+                        title: `${subject} — Grade Consultation Deck`,
+                        badge: 'GRADE SUMMARY DECK',
+                        bodyPoints: [
+                          `Section: ${section} • Term: ${term}`,
+                          `Teacher: ${teacher} • Total Enrolled: ${SAMPLE_STUDENTS.length}`,
+                          `Active Formulas: ${formulas.filter(f => f.enabled).map(f => f.name).join(', ')}`
+                        ]
+                      },
+                      {
+                        title: 'Competency Mastery & Remediation Plan',
+                        badge: 'PERFORMANCE ANALYSIS',
+                        bodyPoints: [
+                          'Mean Class Performance: 88.5% Mastery Rate',
+                          'Remediation Schedule: Targeted micro-tutoring sessions',
+                          '100% DepEd Order No. 009 & 015, s. 2026 Compliant'
+                        ]
+                      }
+                    ]
+                  } as any, `Grade_Consultation_${(subject || 'Class').replace(/[^a-zA-Z0-9]/g, '_')}.pptx`);
+                  setDownloadNotice('✓ Successfully downloaded Grade Consultation Deck (.pptx)!');
+                } catch (err) {
+                  console.error(err);
+                } finally {
+                  setIsExportingSuite(null);
+                }
+              }}
+              disabled={isExportingSuite === 'pptx'}
+              className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold text-xs shadow-sm transition cursor-pointer flex items-center gap-1.5 border border-amber-400 disabled:opacity-50"
+            >
+              <Presentation className="w-4 h-4 text-stone-950" />
+              <span>{isExportingSuite === 'pptx' ? 'Exporting...' : 'Deck (.pptx)'}</span>
+            </button>
+            <button
+              onClick={() => {
+                exportLnnchsSFToWord('SF1', {
+                  ...LNNCHS_DEFAULT_CONFIG,
+                  title: `Grade Consultation Summary — ${subject}`,
+                  formName: `Gradebook Summary: ${subject}`,
+                  section,
+                  adviser: teacher
+                });
+                setDownloadNotice('✓ Successfully exported Grade Summary Memo (.docx)!');
+              }}
+              className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition cursor-pointer flex items-center gap-1.5 border border-blue-400"
+            >
+              <FileText className="w-4 h-4 text-white" />
+              <span>Memo (.docx)</span>
             </button>
             <button
               onClick={handlePrintOrPDF}
@@ -510,6 +606,15 @@ export const ExcelGenerator: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Unified Output Preview Modal */}
+      {previewItemData && (
+        <LnnchsDoorResultPreviewModal
+          itemData={previewItemData}
+          isOpen={true}
+          onClose={() => setPreviewItemData(null)}
+        />
+      )}
     </div>
   );
 };

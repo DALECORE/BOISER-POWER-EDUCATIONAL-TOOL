@@ -57,8 +57,11 @@ export interface CurriculumRecordMaster {
   implementation_year: string;
   school_year: string;
   grade_level: string;
+  key_stage?: string; // e.g. Key Stage 3, Key Stage 4
+  track?: string; // e.g. Academic, TVL, Sports
   learning_area: string;
   subject: string;
+  subject_code?: string; // e.g. CS1, ENG101
   domain?: string;
   strand?: string;
   competency_code: string;
@@ -69,9 +72,14 @@ export interface CurriculumRecordMaster {
   prerequisite_competency?: string;
   term: 'Term 1' | 'Term 2' | 'Term 3';
   quarter?: 'Q1' | 'Q2' | 'Q3' | 'Q4';
+  week?: string; // e.g. Week 1, Week 1-2
   source_document: string;
   source_url?: string;
   source_date?: string;
+  bow_source?: string;
+  cg_source?: string;
+  assessment_weight_set?: string; // e.g. WW: 30%, PT: 50%, QA: 20%
+  transition_flag?: boolean;
   verification_status: SourceStatus;
   last_verified?: string;
   notes?: string;

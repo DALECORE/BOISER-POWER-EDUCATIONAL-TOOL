@@ -579,43 +579,65 @@ export const ILAW_BOW_DATABASE: ILAWBOWEntry[] = [
  * Helper to retrieve distinct grade levels from the BOW database
  */
 export function getDistinctGrades(): string[] {
-  const grades = Array.from(new Set(ILAW_BOW_DATABASE.map(e => e.grade)));
-  // Ensure Grade 11 is first
-  return grades.sort((a, b) => {
-    if (a === 'Grade 11') return -1;
-    if (b === 'Grade 11') return 1;
-    return a.localeCompare(b);
-  });
+  return [
+    'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6',
+    'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'
+  ];
 }
 
 /**
  * Helper to retrieve distinct subjects for a given grade level
  */
 export function getSubjectsForGrade(grade: string): string[] {
-  const subjects = Array.from(
+  // Hardcoded check
+  const staticSubjects = Array.from(
     new Set(
       ILAW_BOW_DATABASE.filter(e => e.grade === grade).map(e => e.subject)
     )
   );
-  return subjects.sort((a, b) => {
-    if (a === 'Mabisang Komunikasyon') return -1;
-    if (b === 'Mabisang Komunikasyon') return 1;
-    return a.localeCompare(b);
-  });
+  if (staticSubjects.length > 0) {
+    return staticSubjects;
+  }
+
+  // Dynamic K-12 subject curriculum assignment
+  if (grade === 'Grade 1' || grade === 'Grade 2' || grade === 'Grade 3' || grade === 'Grade 4' || grade === 'Grade 5' || grade === 'Grade 6') {
+    return [
+      'Filipino',
+      'English',
+      'Mathematics',
+      'Science',
+      'Araling Panlipunan',
+      'MAPEH',
+      'Edukasyon sa Pagpapakatao (ESP)',
+      'EPP / Home Economics'
+    ];
+  } else if (grade === 'Grade 7' || grade === 'Grade 8' || grade === 'Grade 9' || grade === 'Grade 10') {
+    return [
+      'Filipino',
+      'English',
+      'Mathematics',
+      'Science',
+      'Araling Panlipunan',
+      'MAPEH',
+      'Edukasyon sa Pagpapakatao (ESP)',
+      'TLE / TechPro'
+    ];
+  } else {
+    // SHS (11-12)
+    return [
+      'Mabisang Komunikasyon',
+      'General Mathematics',
+      'Disaster Readiness',
+      'Life and Career Skills'
+    ];
+  }
 }
 
 /**
  * Helper to retrieve available terms for a given grade and subject
  */
 export function getTermsForSubject(grade: string, subject: string): Array<'Term 1' | 'Term 2' | 'Term 3'> {
-  const terms = Array.from(
-    new Set(
-      ILAW_BOW_DATABASE
-        .filter(e => e.grade === grade && e.subject === subject)
-        .map(e => e.term)
-    )
-  );
-  return (['Term 1', 'Term 2', 'Term 3'] as const).filter(t => terms.includes(t));
+  return ['Term 1', 'Term 2', 'Term 3'];
 }
 
 /**
@@ -626,7 +648,639 @@ export function getEntriesForTerm(
   subject: string,
   term: 'Term 1' | 'Term 2' | 'Term 3'
 ): ILAWBOWEntry[] {
-  return ILAW_BOW_DATABASE.filter(
+  const staticEntries = ILAW_BOW_DATABASE.filter(
     e => e.grade === grade && e.subject === subject && e.term === term
   );
+  if (staticEntries.length > 0) {
+    return staticEntries;
+  }
+
+  // Define subject categories
+  let subjectCategory: 'Filipino' | 'English' | 'Math' | 'Science' | 'AP' | 'MAPEH' | 'TLE' | 'ESP' = 'English';
+  if (subject.toLowerCase().includes('filipino') || subject.toLowerCase().includes('komunikasyon')) subjectCategory = 'Filipino';
+  else if (subject.toLowerCase().includes('math')) subjectCategory = 'Math';
+  else if (subject.toLowerCase().includes('science') || subject.toLowerCase().includes('disaster')) subjectCategory = 'Science';
+  else if (subject.toLowerCase().includes('panlipunan') || subject.toLowerCase().includes('ap')) subjectCategory = 'AP';
+  else if (subject.toLowerCase().includes('mapeh')) subjectCategory = 'MAPEH';
+  else if (subject.toLowerCase().includes('tle') || subject.toLowerCase().includes('epp')) subjectCategory = 'TLE';
+  else if (subject.toLowerCase().includes('esp') || subject.toLowerCase().includes('pagpapakatao')) subjectCategory = 'ESP';
+
+  // Topic repository based on subjectCategory
+  const topicsMap: Record<typeof subjectCategory, Array<{ topic: string; competency: string; lc: string; cs: string; ps: string }>> = {
+    Filipino: [
+      {
+        topic: 'Wika at Komunikasyon sa Makabagong Panahon',
+        competency: 'Pagsusuri sa Konseptong Pangwika at Wikang Pambansa',
+        lc: 'Nailalahad ang mga pinagdaanang kasaysayan ng wikang pambansa at ang kahalagahan nito sa pagkakaisa.',
+        cs: 'Nauunawaan ang mga batayang konseptong pangwika at kasaysayan ng wika.',
+        ps: 'Nakabubuo ng malikhaing sanaysay o talumpati tungkol sa wika.'
+      },
+      {
+        topic: 'Kultura at Sosyolingguwistikang Realidad',
+        competency: 'Barayti at Baryasyon ng Wika sa Iba\'t Ibang Rehiyon',
+        lc: 'Natutukoy at nasusuri ang mga barayti ng wika (dayalek, sosyolek, idyolek) sa pamayanan.',
+        cs: 'Nauunawaan ang ugnayan ng lipunan, kultura, at wika.',
+        ps: 'Nakapagsasagawa ng pananaliksik ukol sa local vocabulary.'
+      },
+      {
+        topic: 'Mga Rehistro at Estilo ng Wikang Filipino',
+        competency: 'Pagsusuri sa Rehistro ng Wika sa Iba\'t Ibang Larang',
+        lc: 'Nabibigyang-kahulugan ang mga salitang ginagamit sa iba\'t ibang propesyon o akademya.',
+        cs: 'Nauunawaan ang pagkakaiba ng jargon sa karaniwang wika.',
+        ps: 'Nakabubuo ng diksyunaryong pangkabuhayan o bokabularyong teknikal.'
+      },
+      {
+        topic: 'Pragmatiks at Di-Tahasang Pahiwatig',
+        competency: 'Kakayahang Pragmatiko sa Komunikasyon',
+        lc: 'Naipapaliwanag ang kahalagahan ng pragmatiks sa pag-unawa sa di-tahasang pahiwatig.',
+        cs: 'Nauunawaan ang Speech Acts at konteksto ng pakikipag-usap.',
+        ps: 'Nakapagsasagawa ng skit na may tamang pahiwatig at magalang na pananalita.'
+      },
+      {
+        topic: 'Tekstong Impormatibo at Kritikal na Pagbasa',
+        competency: 'Mapanuring Pagbasa sa Tekstong Impormatibo',
+        lc: 'Naiisa-isa ang mga katangian at elemento ng tekstong nagbabahagi ng kaalaman.',
+        cs: 'Nauunawaan ang mga anyo, istruktura, at layunin ng tekstong impormatibo.',
+        ps: 'Nakabubuo ng isang infographics na nagbibigay ng impormasyon tungkol sa kalusugan.'
+      },
+      {
+        topic: 'Tekstong Deskriptibo at Malikhaing Pagsulat',
+        competency: 'Pagsulat ng Malinaw at Masining na Paglalarawan',
+        lc: 'Nakasusulat ng paglalarawan gamit ang angkop na pang-uri at pandama.',
+        cs: 'Nauunawaan ang kahalagahan ng deskripsyon sa mabisang pagkukuwento.',
+        ps: 'Nakabubuo ng talata o tula na naglalarawan sa sariling pamayanan.'
+      },
+      {
+        topic: 'Tekstong Persuweysib at Pangangatwiran',
+        competency: 'Mapanuring Pagsusuri sa Tekstong Nanghihikayat',
+        lc: 'Natutukoy ang mga propaganda at paraan ng panghihikayat sa mga patalastas at sanaysay.',
+        cs: 'Nauunawaan ang mga elemento ng epektibong panghihikayat.',
+        ps: 'Nakabubuo ng patalastas o advocacy campaign plan.'
+      },
+      {
+        topic: 'Tekstong Argumentatibo at Lohika',
+        competency: 'Pagbuo ng Lohikal na Pangangatwiran',
+        lc: 'Nakasusulat ng tekstong argumentatibo na may matatag na ebidensya at lohika.',
+        cs: 'Nauunawaan ang pagkakaiba ng opinyon sa katotohanan.',
+        ps: 'Nakikilahok sa isang pormal na debate o talakayan.'
+      },
+      {
+        topic: 'Sulating Pananaliksik at Pagpili ng Paksa',
+        competency: 'Sistematikong Proseso ng Pananaliksik',
+        lc: 'Nakasusulat ng isang panimula at rasyonal para sa napiling paksa ng pananaliksik.',
+        cs: 'Nauunawaan ang mga etika at pamamaraan sa pananaliksik.',
+        ps: 'Nakabubuo ng balangkas at tentatibong bibliograpiya.'
+      },
+      {
+        topic: 'Pangwakas na Presentasyon ng Pananaliksik',
+        competency: 'Diseminasyon ng Sulating Akademiko',
+        lc: 'Naipapahayag nang buong husay ang natapos na pananaliksik sa harap ng klase.',
+        cs: 'Nauunawaan ang mga pamantayan sa pormal na presentasyon.',
+        ps: 'Nakapagtatanggol ng pananaliksik (Oral Defense) gamit ang angkop na kagamitan.'
+      }
+    ],
+    English: [
+      {
+        topic: 'Critical Reading Strategies in Diverse Texts',
+        competency: 'Analyzing Informative and Literary Nonfiction',
+        lc: 'Identifies the central thesis, supporting claims, and author\'s tone in academic essays.',
+        cs: 'Understand structural elements of academic essays.',
+        ps: 'Write an executive summary of a critical text.'
+      },
+      {
+        topic: 'Structural and Textual Analysis Techniques',
+        competency: 'Deconstructing Argumentative Paragraphs',
+        lc: 'Evaluates the validity of evidence and flags logical fallacies in persuasive columns.',
+        cs: 'Understand logic structures and rhetorical devices.',
+        ps: 'Formulate counter-claims with solid text citation.'
+      },
+      {
+        topic: 'Oral Communication and Persuasion Principles',
+        competency: 'Designing Persuasive Speech Drafts',
+        lc: 'Applies rhetorical appeals (ethos, pathos, logos) to construct a compelling address.',
+        cs: 'Understand performance metrics of speech delivery.',
+        ps: 'Deliver a 3-minute video essay on social changes.'
+      },
+      {
+        topic: 'Pragmatic Aspects of Language and Context',
+        competency: 'Context-Aware Linguistic Application',
+        lc: 'Differentiates speech acts and adjusts vocabulary registers for diverse social contexts.',
+        cs: 'Understand communicative competence theories.',
+        ps: 'Draft email responses adapting formal vs. informal tones.'
+      },
+      {
+        topic: 'Academic Writing and Citation Formatting',
+        competency: 'APA 7th Edition In-Text Citation Mastery',
+        lc: 'Synthesizes literature findings using appropriate citation tags and bibliography logs.',
+        cs: 'Understand ethics of intellectual property.',
+        ps: 'Format a 3-page literature review outline.'
+      },
+      {
+        topic: 'Drafting the Research Abstract and Rationale',
+        competency: 'Formulating Structured Proposals',
+        lc: 'Writes a concise executive abstract mapping background, objectives, and significance.',
+        cs: 'Understand technical constraints of research summaries.',
+        ps: 'Submit a 250-word research proposal outline.'
+      },
+      {
+        topic: 'Formulating Hypotheses and Research Questions',
+        competency: 'Developing Rigorous Inquiry Frameworks',
+        lc: 'Designs clear, testable research questions aligned with a designated methodological approach.',
+        cs: 'Understand theoretical and operational variables.',
+        ps: 'Map operational definitions of key research variables.'
+      },
+      {
+        topic: 'Data Collection Procedures and Survey Designs',
+        competency: 'Designing Reliable Research Instruments',
+        lc: 'Constructs survey questionnaires with high internal validity and ethical consent templates.',
+        cs: 'Understand basic sampling methods.',
+        ps: 'Draft a 10-item Likert-scale questionnaire.'
+      },
+      {
+        topic: 'Synthesizing Findings and Drawing Recommendations',
+        competency: 'Logical Interpretative Presentation',
+        lc: 'Synthesizes raw interview quotes or tabular summaries into thematic research results.',
+        cs: 'Understand thematic coding principles.',
+        ps: 'Formulate actionable institutional policy recommendations.'
+      },
+      {
+        topic: 'Final Peer Evaluation and Oral Presentation',
+        competency: 'Professional Academic Defense Protocols',
+        lc: 'Defends research findings with evidence-backed arguments and high-quality slide decks.',
+        cs: 'Understand presentation design structures.',
+        ps: 'Present and submit the finalized Research Dossier.'
+      }
+    ],
+    Math: [
+      {
+        topic: 'Functions, Relations, and Rational Functions',
+        competency: 'Modeling Real-World Scenarios with Rational Functions',
+        lc: 'Represents business cost matrices and local community budgets as rational equations.',
+        cs: 'Understand functional mappings and domain boundaries.',
+        ps: 'Plot real-life rational relationship graphs on coordinate grids.'
+      },
+      {
+        topic: 'Rational Equations and Inequalities',
+        competency: 'Solving Multi-Step Rational Equations',
+        lc: 'Solves algebraic equations involving variables in the denominator with 100% correctness.',
+        cs: 'Understand rational operations and extraneous roots.',
+        ps: 'Resolve word problems involving rate, work, and mixtures.'
+      },
+      {
+        topic: 'Inverse Functions and Exponential Relationships',
+        competency: 'Deconstructing Inverse Functional Structures',
+        lc: 'Determines inverse operations of mathematical mappings and verifies domain symmetry.',
+        cs: 'Understand symmetry and logarithmic connections.',
+        ps: 'Model compound interest models and half-life decay curves.'
+      },
+      {
+        topic: 'Exponential Equations and Logarithmic Applications',
+        competency: 'Resolving Transcendental Equations',
+        lc: 'Applies properties of logarithms to simplify and solve complex exponential equations.',
+        cs: 'Understand logarithmic definitions and base transmutations.',
+        ps: 'Model earthquake Richter scale behaviors in local Region X scenarios.'
+      },
+      {
+        topic: 'Logarithmic Functions and Graphing Dynamics',
+        competency: 'Plotting Logarithmic Functional Trends',
+        lc: 'Determines asymptotes, intercepts, and trends of logarithmic function curves.',
+        cs: 'Understand graphing attributes and translations.',
+        ps: 'Analyze sound intensity dB curves under noisy classroom conditions.'
+      },
+      {
+        topic: 'Simple and Compound Interest Calculations',
+        competency: 'Mastering Financial Mathematical Equations',
+        lc: 'Compares simple vs. compound interest growth rates across differing investment timelines.',
+        cs: 'Understand time-value of money algorithms.',
+        ps: 'Draft a comparative investment projection table.'
+      },
+      {
+        topic: 'Annuities, Stocks, and Bonds Evaluation',
+        competency: 'Deconstructing Capital Investments',
+        lc: 'Computes future values of ordinary annuities and evaluates stock dividend yields.',
+        cs: 'Understand market trading indices and amortization metrics.',
+        ps: 'Create an amortization table for teacher loan programs.'
+      },
+      {
+        topic: 'Propositional Logic, Truth Tables, and Fallacies',
+        competency: 'Analyzing Sentential Logical Truth States',
+        lc: 'Constructs truth tables for compound statements involving conjunction, disjunction, and implication.',
+        cs: 'Understand boolean expressions and formal syntax rules.',
+        ps: 'Deconstruct marketing slogans using propositional logic proofs.'
+      },
+      {
+        topic: 'Tautologies, Syllogisms, and Mathematical Induction',
+        competency: 'Validating Logic Proofs & Syllogisms',
+        lc: 'Demonstrates argument validity using rules of inference and truth-table logical checks.',
+        cs: 'Understand valid vs. fallacious argument architectures.',
+        ps: 'Write a 2-page induction proof for arithmetic series summation.'
+      },
+      {
+        topic: 'Comprehensive Mathematical Modeling and Case Analysis',
+        competency: 'Integrated Problem Solving Operations',
+        lc: 'Applies algebraic and financial calculations to design a school-level business solution model.',
+        cs: 'Understand multidisciplinary mathematical application principles.',
+        ps: 'Present an executive financial prospectus with zero computational drift.'
+      }
+    ],
+    Science: [
+      {
+        topic: 'Earth Systems, Minerals, and Geological Formations',
+        competency: 'Deconstructing Earth\'s Crustal Compositions',
+        lc: 'Explains chemical properties of minerals and maps rock-cycle transitions.',
+        cs: 'Understand lithospheric dynamics and classification criteria.',
+        ps: 'Identify geological specimens based on hardness and cleavage logs.'
+      },
+      {
+        topic: 'Plate Tectonics and Volcanic Activity Mechanics',
+        competency: 'Mapping Lithospheric Boundary Dynamics',
+        lc: 'Delineates divergent, convergent, and transform plate boundaries and volcanic hazards.',
+        cs: 'Understand seismological fault dynamics and magma behaviors.',
+        ps: 'Construct a 3D clay model of active tectonic subductions.'
+      },
+      {
+        topic: 'Atmospheric Circulation, Weather, and Climate Change',
+        competency: 'Analyzing Global Meteorological Mappings',
+        lc: 'Explains Coriolis effect, monsoonal wind changes, and green-house gas entrapments.',
+        cs: 'Understand tropospheric convection currents and air masses.',
+        ps: 'Draft a localized 10-day barometric weather forecast log.'
+      },
+      {
+        topic: 'Ecosystem Dynamics and Biodiversity Conservation',
+        competency: 'Analyzing Tropic Cascade Relationships',
+        lc: 'Models energy flow and evaluates human disruptions in local Region X coral sanctuaries.',
+        cs: 'Understand ecological pyramids and carbon/nitrogen cycles.',
+        ps: 'Design a community-level biodiversity conservation plan.'
+      },
+      {
+        topic: 'Chemical Bonding, Reactions, and Stoichiometry',
+        competency: 'Balancing Chemical Reaction Formulas',
+        lc: 'Applies conservation of mass to compute reactant mass and products under standard conditions.',
+        cs: 'Understand ionic, covalent, and metallic bonds.',
+        ps: 'Execute a virtual lab titration and calculate molarity values.'
+      },
+      {
+        topic: 'Newtonian Physics and Gravitational Dynamics',
+        competency: 'Resolving Kinematic Vector Equations',
+        lc: 'Solves 1D and 2D projectile motion problems utilizing Newton\'s laws of motion.',
+        cs: 'Understand vector addition, acceleration, and force balances.',
+        ps: 'Build a safe toothpick bridge and analyze its load capacity limits.'
+      },
+      {
+        topic: 'Introduction to Disaster Risk Reduction and Management',
+        competency: 'Analyzing Socio-Economic Vulnerabilities',
+        lc: 'Differentiates physical, social, and economic vulnerability indicators under typhoon strikes.',
+        cs: 'Understand DRRM frameworks and administrative policies.',
+        ps: 'Conduct a school building vulnerability survey and log hazards.'
+      },
+      {
+        topic: 'Hazard Mapping and Evacuation Simulation Protocols',
+        competency: 'Designing Local Safety Spatial Blueprints',
+        lc: 'Plots flood, landslide, and fire vulnerability zones inside school perimeters.',
+        cs: 'Understand emergency egress codes and safety spatial layouts.',
+        ps: 'Draw a high-fidelity school safety egress blueprint.'
+      },
+      {
+        topic: 'Community-Based DRRM Contingency Planning',
+        competency: 'Formulating Actionable Disaster Protocols',
+        lc: 'Drafts standard operating procedures for flood response within coastal barangays.',
+        cs: 'Understand stakeholder collaboration and disaster response tiers.',
+        ps: 'Simulate a table-top disaster drill with complete triage rosters.'
+      },
+      {
+        topic: 'LNNCHS School Disaster Resilience Defense',
+        competency: 'Defending Comprehensive Safety Plans',
+        lc: 'Presents and defends community-wide resiliency plans before local officials.',
+        cs: 'Understand municipal DRR codes and resource mobilization schemes.',
+        ps: 'Deliver a final emergency preparedness campaign deck.'
+      }
+    ],
+    AP: [
+      {
+        topic: 'Mga Isyung Pangkapaligiran at Disaster Risk Reduction',
+        competency: 'Pagsusuri sa mga Isyung Pangkapaligiran at Katutubong Pamamahala',
+        lc: 'Nasusuri ang mga suliraning pangkapaligiran sa sariling pamayanan at ang kahalagahan ng Community-Based Disaster Risk Reduction (CBDRRM).',
+        cs: 'Nauunawaan ang mga sanhi at implikasyon ng mga hamong pangkapaligiran sa bansa.',
+        ps: 'Nakabubuo ng community action plan para sa pangangalaga ng kapaligiran at kahandaan sa kalamidad.'
+      },
+      {
+        topic: 'Globalisasyon at Pagbabagong Pang-ekonomiya',
+        competency: 'Pagsusuri sa Konsepto at Epekto ng Globalisasyon',
+        lc: 'Natataya ang mga implikasyon ng globalisasyon sa ekonomiya, kultura, at pambansang identidad.',
+        cs: 'Nauunawaan ang ugnayan ng pandaigdigang kalakalan sa lokal na kabuhayan.',
+        ps: 'Nakapagsusulat ng posisyong papel tungkol sa epekto ng globalisasyon sa mga magsasaka.'
+      },
+      {
+        topic: 'Karapatang Pantao at Demokrasya sa Pilipinas',
+        competency: 'Pagtataguyod ng Hustisyang Panlipunan',
+        lc: 'Nasusuri ang kasalukuyang sitwasyon ng karapatang pantao at ang mga legal na proteksyon sa bansa.',
+        cs: 'Nauunawaan ang mga karapatang sibil at pampolitika sa Konstitusyon.',
+        ps: 'Nakabubuo ng kampanya para sa karapatan ng kababaihan at kabataan.'
+      },
+      {
+        topic: 'Aktibong Pagkamamamayan at Sibil na Pakikilahok',
+        competency: 'Papel ng Mamamayan sa Pamamahala',
+        lc: 'Naipapaliwanag ang kahalagahan ng pakikilahok sa mga civil society organizations at local councils.',
+        cs: 'Nauunawaan ang konsepto ng participatory governance.',
+        ps: 'Nakikilahok sa isang simulated Barangay Assembly o municipal planning session.'
+      },
+      {
+        topic: 'Kasaysayan at Kontemporaryong Isyu ng Mindanao',
+        competency: 'Pagsusuri sa Kasaysayan at Kapayapaan sa Mindanao',
+        lc: 'Naipapaliwanag ang pinagmulan ng sigalot at ang mga hakbang para sa pangmatagalang kapayapaan sa rehiyon.',
+        cs: 'Nauunawaan ang kasaysayan ng Bangsamoro at kultural na pagkakaiba sa Mindanao.',
+        ps: 'Nakabubuo ng peace advocacy poster at deklarasyon ng kapayapaan.'
+      },
+      {
+        topic: 'Kahirapan at Sosyo-Ekonomikong Hamon',
+        competency: 'Pagtugon sa Kahirapan at Kawalan ng Trabaho',
+        lc: 'Nasusuri ang mga sanhi ng kahirapan at ang mga programa ng pamahalaan tulad ng 4Ps.',
+        cs: 'Nauunawaan ang ugnayan ng edukasyon, trabaho, at pag-unlad ng bansa.',
+        ps: 'Nakabubuo ng mungkahing proyektong pangkabuhayan para sa komunidad.'
+      },
+      {
+        topic: 'Isyung Kasarian at Seksuwalidad',
+        competency: 'Pagtataguyod ng Pagkakapantay-pantay ng Kasarian',
+        lc: 'Nasusuri ang iba\'t ibang anyo ng diskriminasyon at ang kahalagahan ng Magna Carta of Women.',
+        cs: 'Nauunawaan ang konsepto ng gender identity, SOGIE, at pantay na karapatan.',
+        ps: 'Nakabubuo ng infographics o forum ukol sa paggalang sa pagkakaiba-iba ng kasarian.'
+      },
+      {
+        topic: 'Edukasyon at Pagpapatatag ng Yamang Tao',
+        competency: 'Pagsusuri sa Kalidad at Sistema ng Edukasyon',
+        lc: 'Natataya ang mga hamon at reporma sa edukasyon tulad ng MATATAG at K-12 program.',
+        cs: 'Nauunawaan ang karapatan sa de-kalidad na edukasyon at mga hamon sa pag-aaral.',
+        ps: 'Sumusulat ng bukas na liham sa DepEd ukol sa mga mungkahi ng mag-aaral.'
+      },
+      {
+        topic: 'Katiwalian at Mabuting Pamamahala (Good Governance)',
+        competency: 'Pagsugpo sa Korapsyon at Pagtataguyod ng Integridad',
+        lc: 'Nasusuri ang epekto ng katiwalian sa tiwala ng mamamayan at sa pambansang badyet.',
+        cs: 'Nauunawaan ang tungkulin ng Ombudsman at mga batas laban sa graft.',
+        ps: 'Nakabubuo ng audit scorecard o transparent rating para sa mga simulated public projects.'
+      },
+      {
+        topic: 'Pambansang Pagkakaisa at Pag-unlad',
+        competency: 'Pagbalangkas ng Vission para sa Kinabukasan',
+        lc: 'Nagbabalangkas ng personal at kolektibong ambag para sa pag-unlad ng Pilipinas.',
+        cs: 'Nauunawaan ang kahalagahan ng nasyonalismo at pagtutulungan.',
+        ps: 'Nagpe-presenta ng 5-year development plan para sa sariling pamayanan.'
+      }
+    ],
+    MAPEH: [
+      {
+        topic: 'Active Recreation and Physical Fitness Assesment',
+        competency: 'Conducting Body Mass Index and Fitness Logging',
+        lc: 'Measures and records baseline body metrics and designs a customized workout template.',
+        cs: 'Understand guidelines of cardiovascular endurance and strength training.',
+        ps: 'Log a 30-day physical fitness progress chart.'
+      },
+      {
+        topic: 'Traditional and Contemporary Music in Region X',
+        competency: 'Deconstructing Indigenous Melodic Patterns',
+        lc: 'Analyzes rhythms, scales, and cultural instruments used in Bukidnon and Lanao sub-regions.',
+        cs: 'Understand ethnomusicological structures and wind/percussion instruments.',
+        ps: 'Perform a synchronized local percussion cadence using recycled items.'
+      },
+      {
+        topic: 'Philippine Folk Dances and Creative Choreography',
+        competency: 'Choreographing Rhythmic Dance Sequences',
+        lc: 'Executes fundamental footsteps of traditional dances (Tinikling, Cariñosa, Singkil).',
+        cs: 'Understand performance dimensions, costumes, and historical origins of folk dance.',
+        ps: 'Perform a 2-minute choreographed folk fusion dance routine.'
+      },
+      {
+        topic: 'Consumer Health and Product Reliability Evaluations',
+        competency: 'Analyzing Health Supplement Claims',
+        lc: 'Evaluates nutritional panels and screens marketing jargon for deceptive packaging.',
+        cs: 'Understand municipal food and drug codes.',
+        ps: 'Draft a warning bulletin regarding unverified local health remedies.'
+      },
+      {
+        topic: 'Mental Health Awareness and Stress Reduction',
+        competency: 'Developing Cognitive Resilience Plans',
+        lc: 'Identifies chronic stress symptoms and models positive psychological coping strategies.',
+        cs: 'Understand chemical pathways of stress and psychological hygiene guidelines.',
+        ps: 'Design a classroom-level mental health wellness board.'
+      },
+      {
+        topic: 'Emergency First Aid and Wilderness Triage Roster',
+        competency: 'Applying Cardiopulmonary Resuscitation Protocols',
+        lc: 'Demonstrates proper bandaging, splinting, and triage classification under simulated emergencies.',
+        cs: 'Understand guidelines of basic life support and trauma response.',
+        ps: 'Execute a full trauma simulation drill successfully.'
+      },
+      {
+        topic: 'Contemporary Graphic Designs and Local Art Heritage',
+        competency: 'Designing Modern Digital Visuals',
+        lc: 'Applies vector design theories to produce values-based posters incorporating local motifs.',
+        cs: 'Understand visual hierarchy and color harmony rules.',
+        ps: 'Submit a digital high-fidelity values poster artwork.'
+      },
+      {
+        topic: 'Athletics, Track and Field, and Team Coordination',
+        competency: 'Analyzing Biomechanical Motion Limits',
+        lc: 'Identifies errors in running stance or relay passing coordination to maximize speed.',
+        cs: 'Understand kinematic efficiency and athletic safety policies.',
+        ps: 'Conduct a biomechanical running analysis for peers.'
+      },
+      {
+        topic: 'Epidemic Disease Prevention and Family Hygiene',
+        competency: 'Formulating Local Disease Mitigation Plans',
+        lc: 'Models vector control strategies to reduce local dengue breeding sites in school premises.',
+        cs: 'Understand epidemiologic triads and public health sanitation codes.',
+        ps: 'Draft a vector eradication campaign plan.'
+      },
+      {
+        topic: 'Community Environmental Sanitation and Health Auditing',
+        competency: 'Evaluating Water Safety Metrics',
+        lc: 'Measures pH and water turbidity levels in local runoff sites and designs safe filters.',
+        cs: 'Understand sanitary waste management rules.',
+        ps: 'Deliver a final municipal water sanitation audit report.'
+      }
+    ],
+    TLE: [
+      {
+        topic: 'Introduction to Technical Drafting and AutoCAD Interface',
+        competency: 'Navigating Coordinate Entry and Sketch Rules',
+        lc: 'Configures drawing grids, layouts, and plots basic geometries using computer-aided tools.',
+        cs: 'Understand technical drawing codes, standards, and scale factor math.',
+        ps: 'Generate a clean orthographic projections layout of a machine part.'
+      },
+      {
+        topic: 'Computer Hardware Servicing and Diagnostic Procedures',
+        competency: 'Executing Motherboard Assembly Protocols',
+        lc: 'Performs static-safe hardware installations, CPU mounting, and basic BIOS configurations.',
+        cs: 'Understand operating system installation requirements and diagnostic metrics.',
+        ps: 'Successfully debug a non-POSTing hardware assembly.'
+      },
+      {
+        topic: 'Home Economics: Culinary Sanitation and Knife Safety',
+        competency: 'Mastering Professional Knife Cut Geometries',
+        lc: 'Executes julienne, chiffonade, and brunoise cuts with high safety focus.',
+        cs: 'Understand hazard analysis and critical control point (HACCP) rules.',
+        ps: 'Complete a vegetable mise-en-place roster with zero injuries.'
+      },
+      {
+        topic: 'Agricultural Crop Production and Soil Quality Analysis',
+        competency: 'Measuring Soil pH and Nutrient Balances',
+        lc: 'Executes soil tests and formulates custom organic compost blends based on deficiencies.',
+        cs: 'Understand agricultural farming principles and crop rotation cycles.',
+        ps: 'Establish a productive vertical vegetable crop row.'
+      },
+      {
+        topic: 'Electrical Installation, Maintenance, and Circuit Wiring',
+        competency: 'Wiring 3-Way Switch System Circuits',
+        lc: 'Installs non-metallic sheathed cables, junction boxes, and validates terminal loops.',
+        cs: 'Understand national electrical safety standards.',
+        ps: 'Successfully wire a fully functional 2-light hallway circuit board.'
+      },
+      {
+        topic: 'Robotics and Embedded Microcontroller Systems',
+        competency: 'Programming Basic Sensor Loop Triggers',
+        lc: 'Programs microcontrollers to collect analog inputs from proximity sensors and route outputs.',
+        cs: 'Understand logic gates, memory configurations, and digital operations.',
+        ps: 'Assemble a safe autonomous obstacle-avoiding robot model.'
+      },
+      {
+        topic: 'Beauty Care, Cosmetology, and Client Hygiene Policies',
+        competency: 'Executing Professional Nail Shaping and Care',
+        lc: 'Applies sanitation rules to shape, buff, and detail nails cleanly.',
+        cs: 'Understand toxicological safety limits of cosmetological products.',
+        ps: 'Complete a client safety cosmetic scorecard with zero issues.'
+      },
+      {
+        topic: 'Plumbing Services and Pipe Joint Assemblage',
+        competency: 'Cutting and Joining PVC and Galvanized Pipes',
+        lc: 'Measures, threads, and solvent-welds pipe networks to withstand standard pressures.',
+        cs: 'Understand building plumbing standards and water distribution layout rules.',
+        ps: 'Assemble a leak-proof dual-fixture drainage pipe model.'
+      },
+      {
+        topic: 'Automotive Servicing and Internal Combustion Tune-ups',
+        competency: 'Measuring Spark Plug Gap Clearances',
+        lc: 'Uses feeler gauges to set spark plug gaps and checks fuel delivery lines.',
+        cs: 'Understand four-stroke engine cycle mechanics.',
+        ps: 'Diagnose and repair a simulated engine misfire.'
+      },
+      {
+        topic: 'Entrepreneurship and Business Proposal Planning',
+        competency: 'Drafting Actionable Micro-Enterprise Plans',
+        lc: 'Creates costing matrices, break-even graphs, and marketing rosters for local ventures.',
+        cs: 'Understand micro-finance regulations and trade laws.',
+        ps: 'Present a viable 5-page startup business prospectus.'
+      }
+    ],
+    ESP: [
+      {
+        topic: 'Paggalang sa Dignidad at Karapatan ng Kapwa',
+        competency: 'Pagsusuri sa Konsepto ng Likas na Dignidad ng Tao',
+        lc: 'Naipapaliwanag ang kahalagahan ng pagkilala sa dignidad ng bawat tao anuman ang estado sa buhay.',
+        cs: 'Nauunawaan ang mga batayan ng paggalang sa kapwa.',
+        ps: 'Nakabubuo ng resolusyon ukol sa pagwawakas ng bullying sa silid-aralan.'
+      },
+      {
+        topic: 'Mapanuring Pag-iisip at Paghahanap sa Katotohanan',
+        competency: 'Pagsala sa Fake News at Maling Impormasyon sa Social Media',
+        lc: 'Natutukoy ang kahalagahan ng katotohanan at etika sa pagbabahagi ng balita.',
+        cs: 'Nauunawaan ang mga pamantayan sa kritikal na pagsusuri.',
+        ps: 'Nakabubuo ng fact-checking matrix para sa mga nababasang post.'
+      },
+      {
+        topic: 'Katatagan ng Loob at Pagharap sa mga Hamon sa Buhay',
+        competency: 'Paglinang sa Positibong Psychological Hygiene',
+        lc: 'Nailalahad ang mga konkretong hakbang upang mapanatili ang kapayapaan ng isip sa gitna ng suliranin.',
+        cs: 'Nauunawaan ang mga salik ng emosyonal na kalusugan.',
+        ps: 'Gumagawa ng personal wellness journal at coping strategy board.'
+      },
+      {
+        topic: 'Pagmamahal sa Bayan at Aktibong Pakikilahok sa Komunidad',
+        competency: 'Pagbuo ng Diwa ng Nasyonalismo',
+        lc: 'Nasusuri ang sariling tungkulin sa pagpapanatili ng kapayapaan at kaayusan sa bansa.',
+        cs: 'Nauunawaan ang mga tungkulin ng mamamayan sa ilalim ng Saligang Batas.',
+        ps: 'Nakikilahok sa isang simulated volunteer project o community sweep.'
+      },
+      {
+        topic: 'Pangangalaga sa Kalikasan bilang Katiwala ng Likha',
+        competency: 'Etikal na Pamamahala sa Kapaligiran',
+        lc: 'Naipapaliwanag ang pananagutan ng tao sa pangangalaga sa mga likas na yaman para sa susunod na henerasyon.',
+        cs: 'Nauunawaan ang mga prinsipyo ng stewardship at ecological ethics.',
+        ps: 'Nagpapatupad ng waste segregation campaign sa sariling tahanan.'
+      },
+      {
+        topic: 'Pananampalataya at Ispiritwalidad sa Gitna ng Pagkakaiba',
+        competency: 'Pagpapakita ng Paggalang sa Iba\'t Ibang Relihiyon',
+        lc: 'Nasusuri ang ugnayan ng pananampalataya sa paggawa ng kabutihan at pagpapakita ng paggalang sa paniniwala ng iba.',
+        cs: 'Nauunawaan ang kalayaan sa pananampalataya at interfaith harmony.',
+        ps: 'Nakabubuo ng isang interfaith peace declaration.'
+      },
+      {
+        topic: 'Katapatan sa Salita at sa Gawa (Integridad)',
+        competency: 'Pagpapanatili ng Personal na Karangalan',
+        lc: 'Naipapamalas ang katapatan sa lahat ng pagkakataon, lalo na sa akademiko at pag-aaral.',
+        cs: 'Nauunawaan ang konsepto ng plagiarism, pangongopya, at moral na integridad.',
+        ps: 'Lumalagda sa isang simulated Integrity Pledge para sa buong taon.'
+      },
+      {
+        topic: 'Matalinong Paggamit ng Oras at Career Planning',
+        competency: 'Pagbalangkas ng Plano para sa Kinabukasan',
+        lc: 'Natutukoy ang sariling hilig, talento, at kakayahan na angkop sa pipiliing kurso o trabaho.',
+        cs: 'Nauunawaan ang kahalagahan ng time management at goal setting.',
+        ps: 'Nakabubuo ng Career Road Map para sa susunod na 5 taon.'
+      },
+      {
+        topic: 'Katarungang Panlipunan at Pagkakapantay-pantay',
+        competency: 'Pagtulong sa mga Nangangailangan at Marginalized',
+        lc: 'Naipapahayag ang kahalagahan ng pagtulong nang walang hinihintay na kapalit sa mga kapus-palad.',
+        cs: 'Nauunawaan ang kahalagahan ng equity at social justice.',
+        ps: 'Nag-oorganisa ng isang simulated charity o peer tutoring circle.'
+      },
+      {
+        topic: 'Mapayapang Paglutas sa mga Alitan (Conflict Resolution)',
+        competency: 'Paglinang sa Kakayahan sa Negosasyon at Kapayapaan',
+        lc: 'Naipapakita ang mga pamamaraan ng mapayapang negosasyon upang maiwasan ang pisikal na sakitan.',
+        cs: 'Nauunawaan ang mga prinsipyo ng restorative justice at mediation.',
+        ps: 'Sumusulat ng iskrip na nagpapakita ng matagumpay na mediation ng guro o kaklase.'
+      }
+    ]
+  };
+
+  const activeSyllabus = topicsMap[subjectCategory] || topicsMap['English'];
+
+  const results: ILAWBOWEntry[] = [];
+  const termNumber = term === 'Term 1' ? 1 : term === 'Term 2' ? 2 : 3;
+
+  for (let w = 1; w <= 10; w++) {
+    const topicIdx = (w - 1) % activeSyllabus.length;
+    const item = activeSyllabus[topicIdx];
+
+    results.push({
+      grade,
+      subject,
+      term,
+      termNumber,
+      week: w,
+      weekLabel: `Linggo ${w}`,
+      hours: 4,
+      sessions: 4,
+      code: `${grade.substring(0, 5).replace(' ', '')}-${subjectCategory}${grade.substring(6)}-T${termNumber}-W${w}`,
+      topic: item.topic,
+      competency: item.competency,
+      learningCompetency: item.lc,
+      contentStandard: item.cs,
+      performanceStandard: item.ps,
+      enablingCompetencies: `1. Natutukoy ang mga pangunahing konseptong may kinalaman sa ${item.topic}. 2. Nasusuri ang mga halimbawa sa komunidad.`,
+      subjectCategory,
+      s1: `Elicit: Pagpapakita ng panimulang larawan o sitwasyon. Engage: Maikling diskusyon sa silid-aralan ukol sa karanasan ng mag-aaral.`,
+      s2: `Explore: Pangkatang talakayan ng mga gabay na tanong. Explain: Pormal na pagtalakay sa paksa: ${item.topic}.`,
+      s3: `Elaborate: Indibidwal na pagsagot sa isang mini-worksheet o pagsasagawa ng praktikal na gawain.`,
+      s4: `Evaluate: Formative evaluation gamit ang 5-item multiple choice test at pagmamarka sa inihandang rubriko.`,
+      lasBg: `Ang paksang ito ay naglalayong talakayin ang ${item.topic} upang ihanda ang mga mag-aaral sa paggamit ng kanilang kaisipan sa mga praktikal na sitwasyon sa buhay.`,
+      lasA1: `Sumulat ng isang talata na nagpapaliwanag sa iyong sariling opinyon tungkol sa kahalagahan ng ${item.topic}.`,
+      lasA2: `Gumawa ng graphic organizer na nagbubuod sa mga pangunahing ideya na natalakay sa ating klase.`,
+      lasA3: `Magbigay ng 3 halimbawa ng aplikasyon ng ${item.topic} na iyong naoobserbahan sa loob ng iyong tahanan o barangay.`
+    });
+  }
+
+  return results;
 }

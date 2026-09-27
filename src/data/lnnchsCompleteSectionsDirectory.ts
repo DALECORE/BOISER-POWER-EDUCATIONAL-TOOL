@@ -17,6 +17,9 @@ export interface SectionDefinition {
   totalLearners?: number;
   studentCount?: number;
   students?: any[];
+  isLocked?: boolean;
+  lockPin?: string;
+  lockedBy?: string;
 }
 
 export interface LISStudentMasterRecord {

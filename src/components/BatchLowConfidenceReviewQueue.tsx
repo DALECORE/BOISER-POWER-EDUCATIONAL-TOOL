@@ -48,6 +48,8 @@ interface BatchLowConfidenceReviewQueueProps {
   onNavigateToBatchExport: () => void;
   onSelectStudentToView: (student: BatchStudentGradeEntry) => void;
   onInjectSampleFlags?: () => void;
+  autoSyncBatch?: boolean;
+  onToggleAutoSync?: (val: boolean) => void;
 }
 
 export const BatchLowConfidenceReviewQueue: React.FC<BatchLowConfidenceReviewQueueProps> = ({
@@ -58,13 +60,18 @@ export const BatchLowConfidenceReviewQueue: React.FC<BatchLowConfidenceReviewQue
   onSyncCurrentStudentResult,
   onNavigateToBatchExport,
   onSelectStudentToView,
-  onInjectSampleFlags
+  onInjectSampleFlags,
+  autoSyncBatch = true,
+  onToggleAutoSync
 }) => {
   // Filters & Search State
   const [statusFilter, setStatusFilter] = useState<'pending' | 'approved' | 'all'>('pending');
   const [selectedStudentFilter, setSelectedStudentFilter] = useState<string>('all');
+  const [selectedSectionFilter, setSelectedSectionFilter] = useState<string>('all');
+  const [selectedGradeFilter, setSelectedGradeFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [sortByNameOrder, setSortByNameOrder] = useState<'default' | 'asc' | 'desc'>('default');
 
   // Inline Editing State: key is `${studentId}-${itemNumber}`
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -136,15 +143,39 @@ export const BatchLowConfidenceReviewQueue: React.FC<BatchLowConfidenceReviewQue
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [allFlaggedItems]);
 
+  // Unique sections with flagged items for dropdown
+  const sectionsWithFlaggedItems = useMemo(() => {
+    const set = new Set<string>();
+    allFlaggedItems.forEach(f => {
+      if (f.studentSection) set.add(f.studentSection);
+    });
+    return Array.from(set).sort();
+  }, [allFlaggedItems]);
+
+  // Unique grade levels with flagged items for dropdown
+  const gradesWithFlaggedItems = useMemo(() => {
+    const set = new Set<string>();
+    allFlaggedItems.forEach(f => {
+      if (f.studentGrade) set.add(f.studentGrade);
+    });
+    return Array.from(set).sort((a, b) => Number(a) - Number(b));
+  }, [allFlaggedItems]);
+
   // Filtered Flagged Items based on user selections
   const filteredItems = useMemo(() => {
-    return allFlaggedItems.filter(f => {
+    const list = allFlaggedItems.filter(f => {
       // Status Filter
       if (statusFilter === 'pending' && f.item.isManuallyReviewed) return false;
       if (statusFilter === 'approved' && !f.item.isManuallyReviewed) return false;
 
       // Student Filter
       if (selectedStudentFilter !== 'all' && f.studentId !== selectedStudentFilter) return false;
+
+      // Section Filter
+      if (selectedSectionFilter !== 'all' && f.studentSection !== selectedSectionFilter) return false;
+
+      // Grade Level Filter
+      if (selectedGradeFilter !== 'all' && f.studentGrade !== selectedGradeFilter) return false;
 
       // Search Query
       if (searchQuery.trim()) {
@@ -161,7 +192,17 @@ export const BatchLowConfidenceReviewQueue: React.FC<BatchLowConfidenceReviewQue
 
       return true;
     });
-  }, [allFlaggedItems, statusFilter, selectedStudentFilter, searchQuery]);
+
+    // Sort by Student Name alphabetically if requested
+    if (sortByNameOrder !== 'default') {
+      list.sort((a, b) => {
+        const cmp = a.studentName.localeCompare(b.studentName);
+        return sortByNameOrder === 'asc' ? cmp : -cmp;
+      });
+    }
+
+    return list;
+  }, [allFlaggedItems, statusFilter, selectedStudentFilter, selectedSectionFilter, selectedGradeFilter, searchQuery, sortByNameOrder]);
 
   // Helper to update a student's item in the batch queue and recalculate their official DepEd grades
   const updateStudentItemInBatch = (
@@ -370,13 +411,99 @@ export const BatchLowConfidenceReviewQueue: React.FC<BatchLowConfidenceReviewQue
     showToast(`✓ Successfully approved all ${countToApprove} flagged items across ${affectedStudentsCount} students!`);
   };
 
-  // Direct trigger of Final Consolidated PDF export
-  const handleDirectExportFinalPdf = () => {
-    if (batchStudents.length === 0) {
-      alert('Batch queue is empty. Load class roster or evaluate student sheets first.');
+  // Bulk approve ONLY the items currently shown in the filtered view
+  const handleBulkApproveFiltered = () => {
+    const itemsToApprove = filteredItems.filter(f => !f.item.isManuallyReviewed);
+    if (itemsToApprove.length === 0) {
+      showToast("No pending items in current filtered view to approve.");
       return;
     }
 
+    if (!window.confirm(`Bulk Approve: Are you sure you want to mark all ${itemsToApprove.length} currently filtered pending items as 'Teacher Verified'?`)) {
+      return;
+    }
+
+    setBatchStudents(prevStudents => {
+      return prevStudents.map(st => {
+        const studentItemsToApprove = itemsToApprove.filter(f => f.studentId === st.id);
+        if (studentItemsToApprove.length === 0) return st;
+
+        const approveNums = studentItemsToApprove.map(f => f.item.itemNumber);
+        
+        const newComparisons = (st.gradingResult?.itemComparisons || []).map(it => {
+          if (approveNums.includes(it.itemNumber)) {
+            return {
+              ...it,
+              isManuallyReviewed: true,
+              needsReview: false,
+              ocrConfidence: Math.max(it.ocrConfidence || 80, 88),
+              ocrStatus: 'high' as const
+            };
+          }
+          return it;
+        });
+
+        // Recalculate raw score & metrics for this student
+        const totalPoints = st.gradingResult?.totalPoints || activeKey.totalPoints || 10;
+        const rawScore = newComparisons.reduce((sum, c) => sum + (c.scoreAwarded || 0), 0);
+        const percentage = Math.round((rawScore / (totalPoints || 1)) * 100);
+        const transmuted = transmuteInitialGrade(percentage);
+        const qualitative = getQualitativeDescriptor(transmuted);
+        const correctCount = newComparisons.filter(c => c.isCorrect).length;
+        const incorrectCount = newComparisons.filter(c => !c.isCorrect).length;
+        const lowCount = newComparisons.filter(c => (c.needsReview || (c.ocrConfidence !== undefined && c.ocrConfidence < 70)) && !c.isManuallyReviewed).length;
+
+        return {
+          ...st,
+          gradingResult: {
+            ...st.gradingResult!,
+            score: rawScore,
+            percentage,
+            depedTransmutedGrade: transmuted,
+            masteryLevel: `${qualitative.descriptor} (${percentage}%)`,
+            lowConfidenceCount: lowCount,
+            itemComparisons: newComparisons,
+            summary: {
+              ...st.gradingResult!.summary,
+              correctCount,
+              incorrectCount
+            }
+          }
+        };
+      });
+    });
+
+    showToast(`✓ Bulk approved ${itemsToApprove.length} items successfully!`);
+  };
+
+  // Keyboard Shortcuts: Enter to Approve, E to Edit
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Only trigger if no input/textarea is focused
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
+
+      const flaggedItems = pendingItems; // Uses pendingItems from component state
+      if (flaggedItems.length === 0) return;
+
+      // Logic: Pick the first pending item
+      const itemToActOn = flaggedItems[0];
+      const { studentId, item } = itemToActOn;
+
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        handleApproveOcrAsIs(studentId, item.itemNumber);
+      } else if (event.key.toLowerCase() === 'e') {
+        event.preventDefault();
+        setEditingKey(`${studentId}-${item.itemNumber}`);
+        setEditText(item.studentAnswer || '');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [pendingItems]);
+
+  const handleDirectExportFinalPdf = () => {
     try {
       exportBatchGradingToPdf({
         ...DEFAULT_BATCH_CONFIG,
@@ -385,10 +512,9 @@ export const BatchLowConfidenceReviewQueue: React.FC<BatchLowConfidenceReviewQue
         students: batchStudents
       });
       setShowExportModal(false);
-      showToast(`✓ Final Consolidated PDF exported! Dashboard + ${batchStudents.length} Verified Student Slips.`);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      alert('Error generating consolidated PDF.');
+      alert('Could not export batch consolidated PDF.');
     }
   };
 
@@ -402,7 +528,32 @@ export const BatchLowConfidenceReviewQueue: React.FC<BatchLowConfidenceReviewQue
   };
 
   return (
-    <div className="space-y-6">
+    <div className="lg:col-span-2 space-y-6">
+
+      {/* Auto-Sync Batch Toggle (User Requested Feature) */}
+      <div className="bg-white rounded-3xl p-4 border border-slate-200 shadow-sm flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className={`p-2 rounded-xl transition-all ${autoSyncBatch ? 'bg-emerald-100 text-emerald-700 shadow-sm' : 'bg-slate-100 text-slate-400'}`}>
+            <RefreshCw size={20} className={autoSyncBatch ? 'animate-spin-slow' : ''} />
+          </div>
+          <div>
+            <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">Auto-Sync Batch Mode</h3>
+            <p className="text-[10px] text-slate-500 font-medium">Automatically pushes completed scan results to the batch queue as soon as they are successfully processed.</p>
+          </div>
+        </div>
+        <button
+          onClick={() => onToggleAutoSync && onToggleAutoSync(!autoSyncBatch)}
+          className={`relative inline-flex h-7 w-12 items-center rounded-full transition-all focus:outline-none ring-2 ring-offset-2 ${
+            autoSyncBatch ? 'bg-emerald-600 ring-emerald-500/20' : 'bg-slate-300 ring-slate-200/20'
+          }`}
+        >
+          <span
+            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
+              autoSyncBatch ? 'translate-x-6' : 'translate-x-1'
+            }`}
+          />
+        </button>
+      </div>
       
       {/* Toast Alert */}
       {toastMessage && (
@@ -444,14 +595,29 @@ export const BatchLowConfidenceReviewQueue: React.FC<BatchLowConfidenceReviewQue
           {/* Primary Action Buttons */}
           <div className="flex items-center gap-2.5 flex-wrap">
             {pendingItems.length > 0 && (
-              <button
-                onClick={handleApproveAllPendingInBatch}
-                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-xs cursor-pointer"
-                title="Approve all flagged items across the entire batch"
-              >
-                <CheckCheck className="w-4 h-4" />
-                <span>Approve All Flagged ({pendingItems.length})</span>
-              </button>
+              <>
+                <button
+                  onClick={handleApproveAllPendingInBatch}
+                  className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-xs cursor-pointer"
+                  title="Approve all flagged items across the entire batch"
+                >
+                  <CheckCheck className="w-4 h-4" />
+                  <span>Bulk Approve All Flagged ({pendingItems.length})</span>
+                </button>
+                <button
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to clear all pending reviews? This action is irreversible.')) {
+                      handleApproveAllPendingInBatch();
+                      showToast('✓ All pending reviews have been cleared.');
+                    }
+                  }}
+                  className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-xs cursor-pointer"
+                  title="Clear all pending reviews"
+                >
+                  <X className="w-4 h-4" />
+                  <span>Clear All Pending Reviews</span>
+                </button>
+              </>
             )}
 
             <button
@@ -460,6 +626,17 @@ export const BatchLowConfidenceReviewQueue: React.FC<BatchLowConfidenceReviewQue
             >
               <Download className="w-4 h-4 text-[#FCD116]" />
               <span>Export Final Consolidated PDF</span>
+            </button>
+
+            <button
+              onClick={() => {
+                window.print();
+              }}
+              className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-black transition flex items-center gap-2 shadow-sm cursor-pointer"
+              title="Print all queued batch grading slips using print media query"
+            >
+              <Printer className="w-4 h-4 text-white" />
+              <span>Print All Batch Slips</span>
             </button>
 
             <button
@@ -558,7 +735,7 @@ export const BatchLowConfidenceReviewQueue: React.FC<BatchLowConfidenceReviewQue
               onClick={handleApproveAllPendingInBatch}
               className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition flex-shrink-0 cursor-pointer shadow-2xs"
             >
-              Approve All Now →
+              Bulk Approve All Now →
             </button>
           </div>
         ) : (
@@ -593,6 +770,14 @@ export const BatchLowConfidenceReviewQueue: React.FC<BatchLowConfidenceReviewQue
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Export PDF Now</span>
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                title="Print batch report using print media query"
+              >
+                <Printer className="w-3.5 h-3.5 text-white" />
+                <span>Print All Batch Slips</span>
               </button>
             </div>
           </div>
@@ -649,13 +834,44 @@ export const BatchLowConfidenceReviewQueue: React.FC<BatchLowConfidenceReviewQue
           </button>
         </div>
 
-        {/* Student Filter & Search */}
+        {/* Student, Section & Grade Level Filter & Search */}
         <div className="flex items-center gap-3 flex-wrap">
+          {/* Grade Level Filter Dropdown */}
+          <div className="relative">
+            <select
+              value={selectedGradeFilter}
+              onChange={(e) => setSelectedGradeFilter(e.target.value)}
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer"
+              title="Filter review queue by grade level"
+            >
+              <option value="all">All Grades ({gradesWithFlaggedItems.length})</option>
+              {gradesWithFlaggedItems.map(gr => (
+                <option key={gr} value={gr}>Grade {gr}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Section Filter Dropdown */}
+          <div className="relative">
+            <select
+              value={selectedSectionFilter}
+              onChange={(e) => setSelectedSectionFilter(e.target.value)}
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer"
+              title="Filter review queue by student section"
+            >
+              <option value="all">All Sections ({sectionsWithFlaggedItems.length})</option>
+              {sectionsWithFlaggedItems.map(sec => (
+                <option key={sec} value={sec}>{sec}</option>
+              ))}
+            </select>
+          </div>
+
           <div className="relative">
             <select
               value={selectedStudentFilter}
               onChange={(e) => setSelectedStudentFilter(e.target.value)}
               className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer"
+              title="Filter review queue by student name"
             >
               <option value="all">All Students ({studentsWithFlaggedItems.length})</option>
               {studentsWithFlaggedItems.map(st => (
@@ -682,6 +898,31 @@ export const BatchLowConfidenceReviewQueue: React.FC<BatchLowConfidenceReviewQue
               </button>
             )}
           </div>
+
+          {/* Sort by Name Toggle Button */}
+          <button
+            onClick={() => setSortByNameOrder(prev => prev === 'default' ? 'asc' : prev === 'asc' ? 'desc' : 'default')}
+            className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border ${
+              sortByNameOrder !== 'default'
+                ? 'bg-indigo-50 border-indigo-300 text-indigo-900 shadow-2xs'
+                : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+            }`}
+            title="Sort students alphabetically by name"
+          >
+            <span>Sort by Name: {sortByNameOrder === 'default' ? 'Default' : sortByNameOrder === 'asc' ? 'A → Z' : 'Z → A'}</span>
+          </button>
+
+          {/* Bulk Approve Filtered Button (Requested Feature) */}
+          {statusFilter === 'pending' && filteredItems.filter(f => !f.item.isManuallyReviewed).length > 0 && (
+            <button
+              onClick={handleBulkApproveFiltered}
+              className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+              title="Bulk approve all currently filtered pending items"
+            >
+              <CheckCheck className="w-3.5 h-3.5 text-emerald-200" />
+              <span>Bulk Approve All Flagged ({filteredItems.filter(f => !f.item.isManuallyReviewed).length})</span>
+            </button>
+          )}
 
           <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
             <button

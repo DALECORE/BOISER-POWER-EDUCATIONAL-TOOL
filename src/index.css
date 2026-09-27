@@ -94,11 +94,15 @@
 
 /* 🖨️ PRINT MEDIA QUERY - Optimized for DepEd ILAW A4 Portrait */
 @media print {
-  /* 1. Hide non-essential UI elements */
+  /* 1. Hide non-essential UI elements, modals, and security shields */
   header,
   nav,
   footer,
   button,
+  aside,
+  [aria-modal="true"],
+  [class*="z-[10000]"],
+  [class*="z-[999"],
   .sticky,
   .no-print,
   [role="alert"],
@@ -176,4 +180,47 @@
   h1, h2, h3, h4 {
     page-break-after: avoid !important;
   }
+}
+
+/* 📷 BOISER BRANDED QR / BARCODE CAMERA SCANNER INTEGRATION */
+#reader {
+  border: none !important;
+  width: 100% !important;
+}
+
+#reader .html5-qrcode-element {
+  font-family: inherit !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  border-radius: 0.75rem !important;
+  padding: 0.5rem 1rem !important;
+  transition: all 0.2s ease !important;
+  cursor: pointer !important;
+  border: 1.5px solid #0b4ea2 !important;
+  background-color: #0b4ea2 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 4px rgba(11, 78, 162, 0.2) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.025em !important;
+}
+
+#reader .html5-qrcode-element:hover {
+  background-color: #083c7d !important;
+  border-color: #083c7d !important;
+}
+
+#reader select.html5-qrcode-element {
+  background-color: #ffffff !important;
+  color: #092b62 !important;
+  border-color: #0b4ea2 !important;
+  padding: 0.4rem 0.75rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+#reader a.html5-qrcode-element {
+  color: #0b4ea2 !important;
+  background: transparent !important;
+  border: none !important;
+  text-decoration: underline !important;
+  box-shadow: none !important;
 }

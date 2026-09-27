@@ -33,11 +33,20 @@ export const computeLearnerAcademic = (
   const subjectFinalGrades = subjects.map((subj) => {
     const found = gradesList.find((g) => g.subject === subj) || {
       subject: subj,
-      term1: 75,
-      term2: 75,
-      term3: 75
+      term1: 0,
+      term2: 0,
+      term3: 0
     };
-    const final = Math.round((found.term1 + found.term2 + found.term3) / 3);
+    
+    // Logic: If term2 and term3 are 0, the "Final" for now is just term1.
+    // If they have values, compute the 3-term average.
+    let final = found.term1;
+    if (found.term2 > 0 && found.term3 > 0) {
+      final = Math.round((found.term1 + found.term2 + found.term3) / 3);
+    } else if (found.term2 > 0) {
+      final = Math.round((found.term1 + found.term2) / 2);
+    }
+
     return {
       subject: subj,
       t1: found.term1,

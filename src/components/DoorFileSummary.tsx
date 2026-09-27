@@ -12,8 +12,11 @@ import {
   Grid,
   FileBox,
   FolderOpen,
-  ChevronRight
+  ChevronRight,
+  Radio,
+  AlertTriangle
 } from 'lucide-react';
+import { DepEdLdnOlsStatusIndicator } from './DepEdLdnOlsStatusIndicator';
 
 interface DoorFileSummaryProps {
   sectionName: string;
@@ -21,6 +24,8 @@ interface DoorFileSummaryProps {
 }
 
 export const DoorFileSummary: React.FC<DoorFileSummaryProps> = ({ sectionName, gradeLevel }) => {
+  const isShs = String(gradeLevel).includes('11') || String(gradeLevel).includes('12') || String(gradeLevel).toLowerCase().includes('shs');
+
   const sfFiles = [
     { code: 'SF1', name: 'School Register', status: 'Updated', type: 'Excel' },
     { code: 'SF2', name: 'Daily Attendance', status: 'Live Sync', type: 'Excel' },
@@ -40,6 +45,30 @@ export const DoorFileSummary: React.FC<DoorFileSummaryProps> = ({ sectionName, g
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      {/* Conditional DepEd LDN OLS Portal Integration (Applied Exclusively to SHS Doors) */}
+      {isShs && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Radio className="w-4 h-4 text-red-600 animate-pulse" />
+              <span className="text-xs font-black uppercase tracking-wider text-slate-800">
+                SHS Absence Signal &amp; DepEd LDN OLS Leave Bridge
+              </span>
+            </div>
+            <span className="text-[10px] font-mono font-bold text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300">
+              1-Hour Warning: 4:00 PM • Window: 5:00 PM – 7:00 PM Only
+            </span>
+          </div>
+
+          <DepEdLdnOlsStatusIndicator
+            teacherName="Senior High School Resident Faculty"
+            isShsTeacher={true}
+            position={`Adviser • ${gradeLevel}`}
+            advisoryClass={`${gradeLevel} - ${sectionName}`}
+          />
+        </div>
+      )}
+
       {/* SF Summary Section */}
       <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
         <div className="bg-[#002776] p-5 text-white flex items-center justify-between">

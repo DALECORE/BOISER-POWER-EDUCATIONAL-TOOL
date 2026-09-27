@@ -16,8 +16,15 @@ import {
   Download,
   ShieldCheck,
   CheckCircle2,
-  Cpu
+  Cpu,
+  Eye,
+  FileSpreadsheet,
+  FileText,
+  Presentation
 } from 'lucide-react';
+import { exportILAWToPptx } from '../utils/depedPptxExporter';
+import { exportLnnchsSFToExcel, exportLnnchsSFToWord, exportLnnchsSFToPdf, LNNCHS_DEFAULT_CONFIG } from '../utils/lnnchsSchoolFormsExporter';
+import { LnnchsDoorResultPreviewModal, PreviewItemData } from './LnnchsDoorResultPreviewModal';
 
 export const ThreeSpatialLab: React.FC = () => {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -28,6 +35,9 @@ export const ThreeSpatialLab: React.FC = () => {
   const [particleDensity, setParticleDensity] = useState<number>(300);
   const [fps, setFps] = useState<number>(60);
   const [renderMode, setRenderMode] = useState<'WebGPU Ready / WebGL2'>('WebGPU Ready / WebGL2');
+  const [previewItemData, setPreviewItemData] = useState<PreviewItemData | null>(null);
+  const [isExporting, setIsExporting] = useState<string | null>(null);
+  const [statusMsg, setStatusMsg] = useState<string | null>(null);
 
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -472,6 +482,237 @@ export const ThreeSpatialLab: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* UNIFIED DOCUMENT PROCESSING SKILLS & DIRECT DOWNLOAD HUB */}
+      <div className="bg-gradient-to-r from-blue-950/90 via-slate-900 to-indigo-950/90 border-2 border-cyan-400/40 rounded-3xl p-5 shadow-xl text-white space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 text-[10px] font-black uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Unified Document Processing Engine</span>
+            </div>
+            <h3 className="text-base font-black text-white flex items-center gap-2">
+              <span>Direct Multi-Format Academic Output Exporter</span>
+              <span className="text-xs px-2 py-0.5 bg-amber-400/20 text-amber-300 rounded border border-amber-400/40 font-mono">
+                {activeSimulation.toUpperCase()} SIMULATION
+              </span>
+            </h3>
+            <p className="text-xs text-stone-300">
+              Transform the current 3D spatial simulation into DepEd lesson plans, animated classroom presentation decks, lab datasheets, and printable PDF experiment guides.
+            </p>
+          </div>
+
+          <button
+            onClick={() => setPreviewItemData({
+              title: `3D Spatial Lab: ${activeSimulation.toUpperCase()} Simulation`,
+              code: `SPATIAL_${activeSimulation.toUpperCase()}`,
+              category: '3D Interactive Laboratory',
+              description: `Real-time WebGL interactive 3D model for ${activeSimulation} simulation with 60 FPS rendering.`,
+              gradeLevel: 'Grade 11 & 12 STEM',
+              adviserName: 'Steaven Kinth Boiser'
+            })}
+            className="px-4 py-2.5 bg-gradient-to-r from-amber-400 to-yellow-400 hover:brightness-110 text-stone-950 font-black text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer shrink-0"
+          >
+            <Eye className="w-4 h-4 text-stone-950" />
+            <span>Preview in Unified Modal</span>
+          </button>
+        </div>
+
+        {/* Status Notification if any */}
+        {statusMsg && (
+          <div className="p-3 bg-cyan-950/80 border border-cyan-400/50 rounded-xl text-cyan-200 text-xs font-semibold flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0" />
+            <span>{statusMsg}</span>
+          </div>
+        )}
+
+        {/* 4 Direct Download Actions */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          {/* 1. PowerPoint .pptx */}
+          <button
+            onClick={async () => {
+              setIsExporting('pptx');
+              try {
+                await exportILAWToPptx({
+                  header: {
+                    school: 'LNNCHS (Lanao del Norte National Comprehensive High School)',
+                    teacher: 'Steaven Kinth Boiser',
+                    lesson: `3D Spatial Lab: ${activeSimulation.toUpperCase()}`,
+                    learningArea: 'Science & Physics Laboratory',
+                    contentEvaluator: 'Master Teacher II',
+                    languageEvaluator: 'Head Teacher III',
+                    formatEvaluator: 'Principal IV',
+                    division: 'Lanao del Norte',
+                    region: 'Region X',
+                    gradeLevelAndSection: 'Grade 11 - Einstein',
+                    gradeBand: '11-12',
+                    term: 1,
+                    bowWeek: 'Week 3',
+                    inclusiveTeachingDates: '2026-09-25',
+                    numberOfSessions: 4,
+                    references: ['DepEd MATATAG STEM CG', 'Interactive 3D WebGL Labs'],
+                    declarationOfAIUse: 'Assisted by Boiser Power Tools Engine'
+                  },
+                  presentationSlides: [
+                    {
+                      title: `3D Spatial Lab — ${activeSimulation.toUpperCase()} Geometry`,
+                      badge: 'SPATIAL SIMULATION DECK',
+                      bodyPoints: [
+                        `Interactive 3D structural analysis for ${activeSimulation} simulation`,
+                        'Real-time 60 FPS WebGL 2.0 GPU acceleration model',
+                        'Aligned with DepEd Order No. 3, s. 2026 Science Standards'
+                      ]
+                    },
+                    {
+                      title: 'Scientific Observations & Data Synthesis',
+                      badge: 'CLASSROOM LAB',
+                      bodyPoints: [
+                        'Analyze rotation vector and molecular spatial arrangements',
+                        'Record coordinate parameters and quantitative measurements',
+                        'Synthesize observations into laboratory experiment outputs'
+                      ]
+                    }
+                  ]
+                } as any, `3D_Spatial_Lab_${activeSimulation.toUpperCase()}.pptx`);
+                setStatusMsg(`✓ Successfully downloaded ${activeSimulation.toUpperCase()} PowerPoint Presentation (.pptx)!`);
+              } catch (err) {
+                console.error(err);
+              } finally {
+                setIsExporting(null);
+              }
+            }}
+            disabled={isExporting === 'pptx'}
+            className="p-3.5 bg-gradient-to-br from-amber-600 to-orange-700 hover:brightness-110 rounded-2xl border border-amber-400/40 text-left transition flex flex-col justify-between space-y-2 cursor-pointer shadow-md disabled:opacity-60"
+          >
+            <div className="flex items-center justify-between">
+              <Presentation className="w-5 h-5 text-amber-200" />
+              <span className="text-[10px] font-mono bg-black/40 px-2 py-0.5 rounded text-amber-300 font-bold">.PPTX</span>
+            </div>
+            <div>
+              <h4 className="text-xs font-black text-white">PowerPoint Deck</h4>
+              <p className="text-[10px] text-amber-100">16:9 Animated Classroom Slides</p>
+            </div>
+            <div className="flex items-center gap-1 text-[11px] font-bold text-amber-200 pt-1 border-t border-white/10">
+              <Download className="w-3.5 h-3.5" />
+              <span>{isExporting === 'pptx' ? 'Exporting...' : 'Download (.pptx)'}</span>
+            </div>
+          </button>
+
+          {/* 2. Word .docx */}
+          <button
+            onClick={() => {
+              setIsExporting('docx');
+              try {
+                exportLnnchsSFToWord('SF1', {
+                  ...LNNCHS_DEFAULT_CONFIG,
+                  title: `3D Spatial Laboratory Guide — ${activeSimulation.toUpperCase()}`,
+                  formName: `3D Spatial Lab: ${activeSimulation.toUpperCase()}`,
+                  gradeLevel: 'Grade 11 STEM'
+                });
+                setStatusMsg(`✓ Successfully downloaded ${activeSimulation.toUpperCase()} Laboratory Lesson Plan (.docx)!`);
+              } catch (err) {
+                console.error(err);
+              } finally {
+                setIsExporting(null);
+              }
+            }}
+            disabled={isExporting === 'docx'}
+            className="p-3.5 bg-gradient-to-br from-blue-700 to-indigo-800 hover:brightness-110 rounded-2xl border border-blue-400/40 text-left transition flex flex-col justify-between space-y-2 cursor-pointer shadow-md disabled:opacity-60"
+          >
+            <div className="flex items-center justify-between">
+              <FileText className="w-5 h-5 text-blue-200" />
+              <span className="text-[10px] font-mono bg-black/40 px-2 py-0.5 rounded text-blue-300 font-bold">.DOCX</span>
+            </div>
+            <div>
+              <h4 className="text-xs font-black text-white">Word Lesson Plan</h4>
+              <p className="text-[10px] text-blue-100">DepEd ILAW Lab Activity Format</p>
+            </div>
+            <div className="flex items-center gap-1 text-[11px] font-bold text-blue-200 pt-1 border-t border-white/10">
+              <Download className="w-3.5 h-3.5" />
+              <span>{isExporting === 'docx' ? 'Exporting...' : 'Download (.docx)'}</span>
+            </div>
+          </button>
+
+          {/* 3. Excel .xlsx */}
+          <button
+            onClick={() => {
+              setIsExporting('xlsx');
+              try {
+                exportLnnchsSFToExcel('SF1', {
+                  ...LNNCHS_DEFAULT_CONFIG,
+                  title: `3D Spatial Lab Metrics — ${activeSimulation.toUpperCase()}`,
+                  formName: `Spatial Coordinates: ${activeSimulation.toUpperCase()}`,
+                  gradeLevel: 'Grade 11 STEM'
+                });
+                setStatusMsg(`✓ Successfully downloaded ${activeSimulation.toUpperCase()} Simulation Metrics Datasheet (.xlsx)!`);
+              } catch (err) {
+                console.error(err);
+              } finally {
+                setIsExporting(null);
+              }
+            }}
+            disabled={isExporting === 'xlsx'}
+            className="p-3.5 bg-gradient-to-br from-emerald-700 to-teal-800 hover:brightness-110 rounded-2xl border border-emerald-400/40 text-left transition flex flex-col justify-between space-y-2 cursor-pointer shadow-md disabled:opacity-60"
+          >
+            <div className="flex items-center justify-between">
+              <FileSpreadsheet className="w-5 h-5 text-emerald-200" />
+              <span className="text-[10px] font-mono bg-black/40 px-2 py-0.5 rounded text-emerald-300 font-bold">.XLSX</span>
+            </div>
+            <div>
+              <h4 className="text-xs font-black text-white">Excel Datasheet</h4>
+              <p className="text-[10px] text-emerald-100">Math/Physics Coordinate Data</p>
+            </div>
+            <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-200 pt-1 border-t border-white/10">
+              <Download className="w-3.5 h-3.5" />
+              <span>{isExporting === 'xlsx' ? 'Exporting...' : 'Download (.xlsx)'}</span>
+            </div>
+          </button>
+
+          {/* 4. Vector PDF .pdf */}
+          <button
+            onClick={() => {
+              setIsExporting('pdf');
+              try {
+                exportLnnchsSFToPdf('SF1', {
+                  ...LNNCHS_DEFAULT_CONFIG,
+                  title: `3D Spatial Laboratory Guide — ${activeSimulation.toUpperCase()}`,
+                  formName: `3D Spatial Lab Handout: ${activeSimulation.toUpperCase()}`,
+                  gradeLevel: 'Grade 11 STEM'
+                });
+                setStatusMsg(`✓ Successfully generated ${activeSimulation.toUpperCase()} Laboratory Guide (.pdf)!`);
+              } catch (err) {
+                console.error(err);
+              } finally {
+                setIsExporting(null);
+              }
+            }}
+            disabled={isExporting === 'pdf'}
+            className="p-3.5 bg-gradient-to-br from-rose-700 to-red-800 hover:brightness-110 rounded-2xl border border-rose-400/40 text-left transition flex flex-col justify-between space-y-2 cursor-pointer shadow-md disabled:opacity-60"
+          >
+            <div className="flex items-center justify-between">
+              <Download className="w-5 h-5 text-rose-200" />
+              <span className="text-[10px] font-mono bg-black/40 px-2 py-0.5 rounded text-rose-300 font-bold">.PDF</span>
+            </div>
+            <div>
+              <h4 className="text-xs font-black text-white">Printable Lab PDF</h4>
+              <p className="text-[10px] text-rose-100">Sealed Official Lab Handout</p>
+            </div>
+            <div className="flex items-center gap-1 text-[11px] font-bold text-rose-200 pt-1 border-t border-white/10">
+              <Download className="w-3.5 h-3.5" />
+              <span>{isExporting === 'pdf' ? 'Generating...' : 'Download (.pdf)'}</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* Unified Preview Modal */}
+      {previewItemData && (
+        <LnnchsDoorResultPreviewModal
+          itemData={previewItemData}
+          isOpen={true}
+          onClose={() => setPreviewItemData(null)}
+        />
+      )}
     </div>
   );
 };

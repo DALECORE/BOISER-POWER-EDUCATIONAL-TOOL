@@ -37,6 +37,7 @@ import { LNNCHS_20_SECTIONS_PER_GRADE, CONSOLIDATED_LIS_STUDENTS, SectionDefinit
 import { SectionManager } from './SectionManager';
 import { AdviserDoorsHome } from './AdviserDoorsHome';
 import { MasterCreatorSkillsVault } from './MasterCreatorSkillsVault';
+import { DivisionLanaoDelNorteActionResearchDossier } from './DivisionLanaoDelNorteActionResearchDossier';
 import { speakWithCebuanoMaleVoice, stopCebuanoMaleVoice } from '../services/boiserVoiceService';
 import { triggerSuspiciousActivityAndLogout } from '../services/securityAlertService';
 
@@ -72,6 +73,49 @@ export const BoisertEmpirePortal: React.FC<BoisertEmpirePortalProps> = ({ onNavi
   const [selectedSectionId, setSelectedSectionId] = useState('');
   const [isDepEdTeacher, setIsDepEdTeacher] = useState(true);
   const [agreementAccepted, setAgreementAccepted] = useState(false);
+  const [showMasterActionResearch, setShowMasterActionResearch] = useState(false);
+  const [isShieldHidden, setIsShieldHidden] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('boiser_hide_action_research_shield_master_door') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    const handleToggle = (e: any) => {
+      if (e?.detail?.hidden !== undefined) {
+        setIsShieldHidden(e.detail.hidden);
+        if (e.detail.hidden) {
+          setShowMasterActionResearch(false);
+        }
+      } else {
+        setIsShieldHidden(prev => {
+          const next = !prev;
+          if (next) setShowMasterActionResearch(false);
+          return next;
+        });
+      }
+    };
+    window.addEventListener('boiser_toggle_action_research_shield_master_door' as any, handleToggle);
+    return () => window.removeEventListener('boiser_toggle_action_research_shield_master_door' as any, handleToggle);
+  }, []);
+
+  const toggleShieldVisibility = () => {
+    const nextState = !isShieldHidden;
+    setIsShieldHidden(nextState);
+    if (nextState) {
+      setShowMasterActionResearch(false);
+    }
+    try {
+      localStorage.setItem('boiser_hide_action_research_shield_master_door', String(nextState));
+    } catch {}
+    if (nextState) {
+      speakWithCebuanoMaleVoice('Ang Action Research Shield malampusong gitago sa Master Creator Door.');
+    } else {
+      speakWithCebuanoMaleVoice('Ang Action Research Shield gipakita na pag-usab sa Master Creator Door.');
+    }
+  };
 
   // Stored Registered Users Database with Door-to-Door Clicking Activity Telemetry
   const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([
@@ -82,10 +126,7 @@ export const BoisertEmpirePortal: React.FC<BoisertEmpirePortalProps> = ({ onNavi
       role: 'master_creator',
       isVerifiedDepEd: true,
       createdAt: '2026-09-01',
-      clickingActivities: [
-        { timestamp: 'Today, 07:26 AM', action: 'Unlocked Master Creator Vault', moduleUsed: 'Boiser Empire Authentication', ipOrDevice: 'LNNCHS Secure Node A1' },
-        { timestamp: 'Yesterday, 04:12 PM', action: 'Inspected 120 Section Masterlist', moduleUsed: 'SF1-10 Consolidated Registry', ipOrDevice: 'LNNCHS Secure Node A1' }
-      ]
+      clickingActivities: []
     },
     {
       name: 'Mrs. Roselyn Rufino',
@@ -95,10 +136,7 @@ export const BoisertEmpirePortal: React.FC<BoisertEmpirePortalProps> = ({ onNavi
       section: 'G11 Academic 1 (Social Science Education)',
       isVerifiedDepEd: true,
       createdAt: '2026-09-10',
-      clickingActivities: [
-        { timestamp: 'Today, 06:45 AM', action: 'Generated SF9 Learner Report Card', moduleUsed: 'ECR Three-Term Grading & SF9', ipOrDevice: 'SHS Faculty Terminal 2' },
-        { timestamp: 'Yesterday, 02:30 PM', action: 'Verified LIS Attendance Record', moduleUsed: 'SF2 Daily Attendance', ipOrDevice: 'SHS Faculty Terminal 2' }
-      ]
+      clickingActivities: []
     },
     {
       name: 'Mr. Melvin Tabacon',
@@ -108,9 +146,7 @@ export const BoisertEmpirePortal: React.FC<BoisertEmpirePortalProps> = ({ onNavi
       section: 'G12 TechPro 3 (Electrical Systems / EIM)',
       isVerifiedDepEd: true,
       createdAt: '2026-09-12',
-      clickingActivities: [
-        { timestamp: 'Yesterday, 4:15 PM', action: 'Filed Substitute Leave Form via OLS', moduleUsed: 'Leave & Substitution Module', ipOrDevice: 'TVET Workshop Terminal' }
-      ]
+      clickingActivities: []
     }
   ]);
 
@@ -131,8 +167,8 @@ export const BoisertEmpirePortal: React.FC<BoisertEmpirePortalProps> = ({ onNavi
     setIsSpeaking(true);
     speakWithCebuanoMaleVoice(text, {
       appendTagline: true,
-      rate: 0.88,
-      pitch: 0.86,
+      rate: 0.95,
+      pitch: 1.0,
       onStart: () => setIsSpeaking(true),
       onEnd: () => setIsSpeaking(false),
       onError: () => setIsSpeaking(false)
@@ -838,14 +874,54 @@ export const BoisertEmpirePortal: React.FC<BoisertEmpirePortalProps> = ({ onNavi
               </div>
             </div>
 
-            <button
-              onClick={() => { setAuthStep('welcome'); setCurrentUser(null); }}
-              className="px-5 py-2.5 bg-stone-950 hover:bg-stone-900 text-amber-400 font-black rounded-xl text-xs transition flex items-center gap-2 cursor-pointer shadow-md self-start md:self-auto"
-            >
-              <LogOut size={14} />
-              <span>Lock Master Room</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Command Toggle: Hide/Show Action Research Shield */}
+              <button
+                onClick={toggleShieldVisibility}
+                className={`px-3.5 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer shadow-md border ${
+                  isShieldHidden
+                    ? 'bg-stone-900 text-amber-300 border-amber-400/60 hover:bg-stone-800'
+                    : 'bg-white/20 text-white border-white/40 hover:bg-white/30'
+                }`}
+                title={isShieldHidden ? "Command: /show-action-research-shield (Click to Unhide)" : "Command: /hide-action-research-shield (Click to Hide)"}
+              >
+                {isShieldHidden ? <EyeOff size={14} className="text-amber-400" /> : <Eye size={14} className="text-cyan-300" />}
+                <span>{isShieldHidden ? 'Shield Hidden (Click to Reveal)' : 'Hide Shield'}</span>
+              </button>
+
+              {!isShieldHidden && (
+                <button
+                  onClick={() => {
+                    setShowMasterActionResearch(!showMasterActionResearch);
+                    speakWithCebuanoMaleVoice('Opening Action Research Annexes: Four dedicated sub-templates for Division of Lanao del Norte.');
+                  }}
+                  className={`px-5 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 cursor-pointer shadow-lg border-2 ${
+                    showMasterActionResearch
+                      ? 'bg-emerald-500 text-stone-950 border-emerald-300'
+                      : 'bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 hover:brightness-110 text-stone-950 border-white/60 animate-pulse'
+                  }`}
+                >
+                  <Award size={16} className="text-stone-950 fill-stone-950" />
+                  <span>🎖️ ACTION RESEARCH ANNEXES (ANNEX A, B, C, D • SDO LANAO DEL NORTE)</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => { setAuthStep('welcome'); setCurrentUser(null); }}
+                className="px-5 py-2.5 bg-stone-950 hover:bg-stone-900 text-amber-400 font-black rounded-xl text-xs transition flex items-center gap-2 cursor-pointer shadow-md self-start md:self-auto"
+              >
+                <LogOut size={14} />
+                <span>Lock Master Room</span>
+              </button>
+            </div>
           </div>
+
+          {/* MASTER CREATOR SPECIAL ACTION RESEARCH PORTAL (DIVISION OF LANAO DEL NORTE - 4 ANNEXES) */}
+          {(!isShieldHidden && showMasterActionResearch) && (
+            <div className="animate-in fade-in duration-300">
+              <DivisionLanaoDelNorteActionResearchDossier onBack={() => setShowMasterActionResearch(false)} />
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm space-y-1">

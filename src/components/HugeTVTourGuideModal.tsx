@@ -23,7 +23,7 @@ import {
   Power
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { speakWithCebuanoMaleVoice, stopCebuanoMaleVoice, executeSwitchToCebuanoMaleVoiceCommand } from '../services/boiserVoiceService';
+import { speakWithProfessionalMaleVoice, stopProfessionalMaleVoice, executeSwitchToProfessionalMaleVoiceCommand } from '../services/boiserVoiceService';
 
 interface HugeTVTourGuideModalProps {
   isOpen: boolean;
@@ -36,126 +36,151 @@ const TV_TOUR_STEPS = [
   {
     id: 1,
     title: {
-      en: "📺 WELCOME TO BOISER POWER EDUCATION TOOLS",
-      tl: "📺 MALIGAYANG PAGDATING SA BOISER POWER EDUCATION TOOLS",
-      bis: "📺 MAAYONG PAG-ABOT SA BOISER POWER EDUCATION TOOLS"
+      en: "📺 WELCOME TO BOISER EDUCATIONAL RESOURCES",
+      tl: "📺 MALIGAYANG PAGDATING SA BOISER EDUCATIONAL RESOURCES",
+      bis: "📺 MAAYONG PAG-ABOT SA BOISER EDUCATIONAL RESOURCES"
     },
     subtitle: {
-      en: "Channel 01: System Overview & Educator Mission",
-      tl: "Channel 01: Pangkalahatang Sulyap at Layunin sa mga Guro",
-      bis: "Channel 01: Pagpaila sa Sistema ug Misyon sa Magtutudlo"
+      en: "Channel 01: System Overview & Master Creator Welcome",
+      tl: "Channel 01: Pangkalahatang Sulyap at Pagbati",
+      bis: "Channel 01: Pagpaila sa Sistema ug Pag-abi-abi"
     },
     icon: GraduationCap,
     badgeColor: "from-blue-600 to-indigo-700",
     lectureText: {
-      en: "Welcome dear teacher! Engineered by Master Creator Steaven Kinth D. Boiser, this 100% free lifetime education suite is specifically built for public school educators in LNNCHS and DepEd Region X. It brings together automated grading, SF1 to SF10 form generation, ILAW lesson plans, and an interactive voice-activated AI assistant. Enjoy learning!",
-      tl: "Maligayang pagdating mahal na guro! Idinisenyo ni Master Creator Steaven Kinth D. Boiser, ang 100% libreng platapormang ito ay ginawa para sa mga pampublikong guro ng LNNCHS at DepEd Region X. Pinagsasama nito ang awtomatikong pagmamarka, paggawa ng SF1 hanggang SF10, ILAW lesson plans, at boses na AI assistant. Enjoy learning!",
-      bis: "Maayong pag-abot mahal nga magtutudlo! Gihimo ni Master Creator Steaven Kinth D. Boiser, kining 100% libre nga sistema ay para sa tanang magtutudlo sa LNNCHS ug DepEd Region X. Gi-usa dinhi ang pagkwenta sa grado, SF1 hangtod SF10 forms, ILAW lesson plans, ug voice AI chatbot. Enjoy learning!"
+      en: "Welcome to the EDUCATIONAL RESOURCES of STEAVEN KINTH D BOISER MASTER CREATOR! Engineered for excellence, this lifetime suite is built for LNNCHS and DepEd educators, bringing automated grading, SF forms, and ILAW lesson plans into one powerful platform. ENJOY LEARNING WITH BOISER EDUCATIONAL RESOURCES",
+      tl: "Welcome to the EDUCATIONAL RESOURCES of STEAVEN KINTH D BOISER MASTER CREATOR! Idinisenyo para sa kagalingan, ang lifetime suite na ito ay gawa para sa mga guro ng LNNCHS at DepEd, pinagsasama ang grading, SF forms, at ILAW lesson plans. ENJOY LEARNING WITH BOISER EDUCATIONAL RESOURCES",
+      bis: "Welcome to the EDUCATIONAL RESOURCES of STEAVEN KINTH D BOISER MASTER CREATOR! Gihimo alang sa excellence, kining lifetime suite ay para sa mga magtutudlo sa LNNCHS ug DepEd, diin gi-usa ang grading, SF forms, ug ILAW lesson plans. ENJOY LEARNING WITH BOISER EDUCATIONAL RESOURCES"
     },
     keyPoints: [
-      { en: "100% Lifetime Free License for DepEd Educators", tl: "100% Libreng Lisensya Para sa mga Guro ng DepEd", bis: "100% Libre nga Lisensya Para sa mga Magtutudlo" },
-      { en: "Offline-First PWA Technology for Mobile & Desktop", tl: "Gumagana Kahit Walang Internet sa Mobile at Desktop", bis: "Mo-gana Bisan Walay Internet sa Mobile ug Laptop" },
-      { en: "Aligned with DepEd Order No. 3, s. 2026 MATATAG", tl: "Nakatugon sa DepEd Order No. 3, s. 2026 MATATAG", bis: "Subay sa DepEd Order No. 3, s. 2026 MATATAG" }
+      { en: "1.0 TB Infrastructure for 200k Teachers", tl: "1.0 TB Infrastructure para sa 200k na Guro", bis: "1.0 TB Infrastructure para sa 200k ka Magtutudlo" },
+      { en: "Offline-First PWA Technology", tl: "Gumagana Kahit Walang Internet", bis: "Mo-gana Bisan Walay Internet" },
+      { en: "Aligned with DepEd MATATAG 2026", tl: "Nakatugon sa DepEd MATATAG 2026", bis: "Subay sa DepEd MATATAG 2026" }
     ]
   },
   {
     id: 2,
     title: {
-      en: "📊 15-SHEET MASTER GRADING & OFFICIAL SF FORMS",
-      tl: "📊 15-SHEET MASTER GRADING AT OPISYAL NA SF FORMS",
-      bis: "📊 15-SHEET MASTER GRADING UG OPISYAL NGA SF FORMS"
+      en: "📊 MASTER GRADING & OFFICIAL SF FORMS",
+      tl: "📊 MASTER GRADING AT OPISYAL NA SF FORMS",
+      bis: "📊 MASTER GRADING UG OPISYAL NGA SF FORMS"
     },
     subtitle: {
-      en: "Channel 02: Automated Transmutation & School Forms",
-      tl: "Channel 02: Awtomatikong Pag-compute ng Grado at Forms",
-      bis: "Channel 02: Awtomatiko nga Pagkwenta sa Grado ug Forms"
+      en: "Channel 02: Automated Transmutation & Exports",
+      tl: "Channel 02: Awtomatikong Pag-compute at Export",
+      bis: "Channel 02: Awtomatiko nga Pagkwenta ug Export"
     },
     icon: Calculator,
     badgeColor: "from-emerald-600 to-teal-700",
     lectureText: {
-      en: "Operating the 15-Sheet Master Grading System is fast and simple! Enter student scores for Written Works, Performance Tasks, and Quarterly Assessments. The system automatically converts grades using official DepEd transmutation tables. Easily export SF1 Masterlist, SF2 Attendance, SF9 Progress Report Cards, and SF10 Permanent Records. Enjoy learning!",
-      tl: "Ang paggamit ng 15-Sheet Master Grading System ay napakabilis! Ipasok ang marka ng Written Works, Performance Tasks, at Quarterly Assessment. Kusa itong itinra-transmute ng system. Mabilis ding mai-export ang SF1, SF2, SF9 Report Card, at SF10 Permanent Record. Enjoy learning!",
-      bis: "Ang pagkwenta sa 15-Sheet Master Grading System paspas kaayo! Ibutang ang marka sa Written Works, Performance Tasks, ug Quarterly Exam. Ang sistema na ang mag-convert sa sakto nga transmutation. Paspas usab maka-download og SF1, SF2, SF9 Report Card, ug SF10 Form 137. Enjoy learning!"
+      en: "The Master Grading System automates transmutation and exports SF1 to SF10 forms instantly. Enter scores, and the system handles the rest with official DepEd precision. ENJOY LEARNING WITH BOISER EDUCATIONAL RESOURCES",
+      tl: "Ang Master Grading System ay awtomatikong nag-compute ng transmutation at nag-e-export ng SF1 hanggang SF10 forms. Ipasok lamang ang marka at ang system na ang bahala. ENJOY LEARNING WITH BOISER EDUCATIONAL RESOURCES",
+      bis: "Ang Master Grading System awtomatiko nga mo-compute sa transmutation ug mo-export sa SF1 hangtod SF10 forms. Ibutang lang ang scores ug ang sistema na ang mag-atiman. ENJOY LEARNING WITH BOISER EDUCATIONAL RESOURCES"
     },
     keyPoints: [
-      { en: "Automated Trimester Transmutation (JHS & SHS)", tl: "Awtomatikong Transmutation sa Grade 7 hanggang Grade 12", bis: "Awtomatiko nga Transmutation gikan Grade 7 hangtod Grade 12" },
-      { en: "Instant PDF/Excel Export for SF1, SF2, SF9, & SF10", tl: "Mabilis na Export ng SF1, SF2, SF9, at SF10 sa PDF at Excel", bis: "Paspas nga Download sa SF1, SF2, SF9, ug SF10 sa PDF/Excel" },
-      { en: "Batch SF Inspector with Verification QR Codes", tl: "Batch SF Inspector na may QR Code Verification", bis: "Batch SF Inspector nga may QR Code Verification" }
+      { en: "Automated Trimester Transmutation", tl: "Awtomatikong Transmutation", bis: "Awtomatiko nga Transmutation" },
+      { en: "Instant PDF/Excel SF1-SF10 Export", tl: "Mabilis na Export ng SF1-SF10", bis: "Paspas nga Export sa SF1-SF10" },
+      { en: "Verified Batch SF Inspector", tl: "Batch SF Inspector na may Verification", bis: "Batch SF Inspector nga may Verification" }
     ]
   },
   {
     id: 3,
     title: {
-      en: "📝 ILAW EXEMPLAR & LEARNER ACTIVITY SHEET (LAS)",
-      tl: "📝 ILAW EXEMPLAR AT LEARNER ACTIVITY SHEET (LAS)",
-      bis: "📝 ILAW EXEMPLAR UG LEARNER ACTIVITY SHEET (LAS)"
+      en: "📝 ILAW EXEMPLAR & ACTIVITY SHEETS",
+      tl: "📝 ILAW EXEMPLAR AT ACTIVITY SHEETS",
+      bis: "📝 ILAW EXEMPLAR UG ACTIVITY SHEETS"
     },
     subtitle: {
-      en: "Channel 03: MATATAG 2026 Lesson Plan Generator",
-      tl: "Channel 03: Paggawa ng Aralin Alinsunod sa MATATAG 2026",
-      bis: "Channel 03: Paggama og Leksyon Sumala sa MATATAG 2026"
+      en: "Channel 03: MATATAG Lesson Plan Generator",
+      tl: "Channel 03: Paggawa ng Aralin sa MATATAG",
+      bis: "Channel 03: Paggama og Leksyon sa MATATAG"
     },
     icon: BookOpen,
     badgeColor: "from-amber-600 to-orange-700",
     lectureText: {
-      en: "Drafting complete 4-session lesson plans and Learner Activity Sheets takes seconds! Select your subject and competency code from our 20-attribute curriculum database. The AI generator fills in Learning Objectives, Content Standards, and Assessment Rubrics. Download as formatted Word or PDF files ready for supervisor submission. Enjoy learning!",
-      tl: "Ang pagbuo ng 4-session lesson plan at Activity Sheets ay tumatagal lamang ng ilang segundo! Pumili ng asignatura at competency code mula sa aming 20-attribute database. Awtomatikong pupunan ng AI ang mga Layunin, Content Standard, at Rubrics. I-download bilang Word o PDF na handa sa imbestigasyon ng supervisor. Enjoy learning!",
-      bis: "Ang paghimo og 4-session nga leksyon ug Activity Sheets pwerteng paspasa! Pilia ang subject ug competency code sa among 20-attribute database. Ang AI na ang mopuno sa Layunin, Content Standards, ug Assessment Rubrics. I-download sa Word o PDF nga andam na sa pagsubay sa supervisor. Enjoy learning!"
+      en: "Draft complete 4-session lesson plans and Learner Activity Sheets in seconds. Powered by our 20-attribute database, the AI fills in standards and rubrics automatically. ENJOY LEARNING WITH BOISER EDUCATIONAL RESOURCES",
+      tl: "Bumuo ng 4-session lesson plan at Activity Sheets sa loob ng ilang segundo. Gamit ang aming database, awtomatikong pupunan ng AI ang mga standards at rubrics. ENJOY LEARNING WITH BOISER EDUCATIONAL RESOURCES",
+      bis: "Paspas nga paghimo og 4-session nga leksyon ug Activity Sheets. Gamit ang among database, ang AI na ang mopuno sa mga standards ug rubrics. ENJOY LEARNING WITH BOISER EDUCATIONAL RESOURCES"
     },
     keyPoints: [
-      { en: "20-Attribute Verified Competency Database Model", tl: "Kumpirmadong 20-Attribute Curriculum Database Model", bis: "Kumpirmado nga 20-Attribute Curriculum Database Model" },
-      { en: "4-Session Structured Lesson Log with Rubrics", tl: "4-Session na Lesson Log na may Kasamang Rubriks", bis: "4-Session nga Lesson Log nga may Kasamang Rubriks" },
-      { en: "One-Click Word Document & PDF Generation", tl: "Isang Click na Paggawa ng Word Document at PDF", bis: "Usa ka Click nga Paggama og Word Document ug PDF" }
+      { en: "20-Attribute Verified Database", tl: "Kumpirmadong 20-Attribute Database", bis: "Kumpirmado nga 20-Attribute Database" },
+      { en: "4-Session Structured Lesson Log", tl: "4-Session na Lesson Log", bis: "4-Session nga Lesson Log" },
+      { en: "One-Click Word & PDF Generation", tl: "Isang Click na Word at PDF", bis: "Usa ka Click nga Word ug PDF" }
     ]
   },
   {
     id: 4,
     title: {
-      en: "🎙️ VOICE-ACTIVATED BOISER CHATBOT & LIS DIRECTORY",
-      tl: "🎙️ Boses-Na-BOISER CHATBOT AT LIS DIRECTORY",
-      bis: "🎙️ TINGOG-NA-BOISER CHATBOT UG LIS DIRECTORY"
+      en: "🎙️ VOICE-ACTIVATED BOISER CHATBOT",
+      tl: "🎙️ Boses-Na-BOISER CHATBOT",
+      bis: "🎙️ TINGOG-NA-BOISER CHATBOT"
     },
     subtitle: {
       en: "Channel 04: Interactive Multilingual AI Assistant",
-      tl: "Channel 04: AI Assistant sa Bisaya, Tagalog, at English",
-      bis: "Channel 04: AI Assistant sa Bisaya, Tagalog, ug English"
+      tl: "Channel 04: AI Assistant sa Tatlong Wika",
+      bis: "Channel 04: AI Assistant sa Tulo ka Pinulongan"
     },
     icon: Bot,
     badgeColor: "from-purple-600 to-pink-700",
     lectureText: {
-      en: "Meet the voice-activated Boiser Chatbot! Simply tap the microphone beside the chat box and speak in Bisaya, Tagalog, or English. The chatbot searches official DepEd orders, LNNCHS memos, and the 120-section LIS student directory. It answers your questions in a clear, calm voice. Enjoy learning!",
-      tl: "Kilalanin ang voice-activated Boiser Chatbot! Pindutin lamang ang mikropono sa tabi ng chatbox at magsalita sa Bisaya, Tagalog, o English. Hinahanap ng chatbot ang opisyal na DepEd Orders, LNNCHS memos, at LIS directory ng 60 mag-aaral bawat seksyon. Sumasagot ito sa malinaw at kalmadong boses. Enjoy learning!",
-      bis: "Ila-ila ang voice-activated Boiser Chatbot! Pindota lang ang mikropono sa kilid sa chatbox ug storya sa Bisaya, Tagalog, o English. Ang chatbot mo-search dayon sa mga DepEd Orders, LNNCHS memos, ug LIS directory sa 60 ka estudyante matag seksyon. Mo-tubag kini sa maayo ug klarong tingog. Enjoy learning!"
+      en: "Talk to the voice-activated Boiser Chatbot for instant answers on DepEd orders, LNNCHS memos, and the LIS directory. It understands Bisaya, Tagalog, and English perfectly. ENJOY LEARNING WITH BOISER EDUCATIONAL RESOURCES",
+      tl: "Maaari mong kausapin ang voice-activated Boiser Chatbot para sa mabilis na sagot sa DepEd orders at LNNCHS memos. Nakakaintindi ito ng Bisaya, Tagalog, at English. ENJOY LEARNING WITH BOISER EDUCATIONAL RESOURCES",
+      bis: "Storya sa voice-activated Boiser Chatbot para sa paspas nga tubag sa DepEd orders ug LNNCHS memos. Makasabot kini sa Bisaya, Tagalog, ug English. ENJOY LEARNING WITH BOISER EDUCATIONAL RESOURCES"
     },
     keyPoints: [
-      { en: "Live Speech-to-Text Input in Bisaya, Tagalog, & English", tl: "Magsalita sa Bisaya, Tagalog, o English Gamit ang Mikropono", bis: "Magsulti sa Bisaya, Tagalog, o English Gamit ang Mikropono" },
-      { en: "Searches DepEd Memos, Handbooks, & 120 LIS Sections", tl: "Naghahanap sa DepEd Orders, Memos, at 120 LIS Sections", bis: "Mo-search sa DepEd Orders, Memos, ug 120 LIS Sections" },
-      { en: "Calm Voice Output with Tagline Reinforcement", tl: "Malinaw at Kalmadong Pagsasalita sa Bawat Tumutugon", bis: "Klaro ug Kalmado nga Tingog sa Matag Tubag" }
+      { en: "Live Speech-to-Text Input", tl: "Magsalita Gamit ang Mikropono", bis: "Magsulti Gamit ang Mikropono" },
+      { en: "Searches 120 LIS Sections", tl: "Naghahanap sa 120 LIS Sections", bis: "Mo-search sa 120 LIS Sections" },
+      { en: "Calm & Clear Voice Output", tl: "Malinaw na Boses na Tugon", bis: "Klaro nga Tingog nga Tubag" }
     ]
   },
   {
     id: 5,
     title: {
-      en: "🛡️ APP GOVERNANCE & TEACHER SUPPORT NOTICE",
-      tl: "🛡️ PAMAMAHALA AT PATAKARAN SA SUPORTA NG GURO",
-      bis: "🛡️ PAGDUMALA AT GIYA SA SUPORTA SA MAGTUTUDLO"
+      en: "📝 GOOGLE SUITE & CLOUD SYNC",
+      tl: "📝 GOOGLE SUITE AT CLOUD SYNC",
+      bis: "📝 GOOGLE SUITE UG CLOUD SYNC"
     },
     subtitle: {
-      en: "Channel 05: Support Tool Declaration & Master Security",
-      tl: "Channel 05: Pahayag sa Suporta at Proteksyon ng System",
-      bis: "Channel 05: Pahayag sa Suporta ug Proteksyon sa System"
+      en: "Channel 05: Automated Forms & Drive Sync",
+      tl: "Channel 05: Awtomatikong Forms at Drive Sync",
+      bis: "Channel 05: Awtomatiko nga Forms ug Drive Sync"
+    },
+    icon: Zap,
+    badgeColor: "from-purple-600 to-indigo-700",
+    lectureText: {
+      en: "Create quizzes automatically with the Google Forms Creator and deploy them directly to your Drive. Secure cloud synchronization ensures your data is always backed up. ENJOY LEARNING WITH BOISER EDUCATIONAL RESOURCES",
+      tl: "Gumawa ng mga quiz gamit ang Google Forms Creator at i-deploy ito diretso sa iyong Drive. Sigurado ang backup ng iyong data gamit ang cloud synchronization. ENJOY LEARNING WITH BOISER EDUCATIONAL RESOURCES",
+      bis: "Paghimo og mga quiz gamit ang Google Forms Creator ug i-deploy kini diretso sa imong Drive. Sigurado ang backup sa inyong data gamit ang cloud synchronization. ENJOY LEARNING WITH BOISER EDUCATIONAL RESOURCES"
+    },
+    keyPoints: [
+      { en: "Automated Google Forms Creation", tl: "Awtomatikong Paggawa ng Forms", bis: "Awtomatiko nga Paggama og Forms" },
+      { en: "Direct Google Drive Deployment", tl: "Direktang I-deploy sa Drive", bis: "Diretso nga I-deploy sa Drive" },
+      { en: "Secure 1.0 TB Cloud Storage", tl: "Ligtas na 1.0 TB Cloud Storage", bis: "Safe nga 1.0 TB Cloud Storage" }
+    ]
+  },
+  {
+    id: 6,
+    title: {
+      en: "🌟 10X PERFORMANCE & INFRASTRUCTURE",
+      tl: "🌟 10X PERFORMANCE AT INFRASTRUKTURA",
+      bis: "🌟 10X PERFORMANCE UG INFRASTRUKTURA"
+    },
+    subtitle: {
+      en: "Channel 06: Ultimate Speed & Stability",
+      tl: "Channel 06: Bilis at Katatagan",
+      bis: "Channel 06: Kapaspas ug Kalig-on"
     },
     icon: ShieldCheck,
     badgeColor: "from-rose-600 to-red-700",
     lectureText: {
-      en: "Remember: Steaven Kinth D. Boiser is strictly a support tool for teachers designed to assist you in classroom management. Master Creator doors and source code are protected with live signal alerts that reveal unauthorized copy attempts directly to the Master Creator. Welcome aboard and enjoy learning!",
-      tl: "Paalala: Ang app na ito ay suportang kagamitan lamang para sa mga guro upang tulungan kayo sa klase. Ang Master Creator doors at source code ay nakaseguro gamit ang live breach signal alerts na nagpapakita ng pangalan ng nagtangkang mangopya diretso kay Master Creator. Maligayang pagdating at enjoy learning!",
-      bis: "Pahinumdom: Kining sistema ay suporta lamang nga gamit alang sa mga magtutudlo sa pagdumala sa klase. Ang Master Creator doors ug source code giprotektahan og live signal alarm nga mopadayag sa pangalan sa mangawat diretso sa Master Creator. Maayong pag-abot ug enjoy learning!"
+      en: "To conclude, our 1.0 TB infrastructure and 10x Deep Cleaner ensure zero lag for 200,000 concurrent teachers. The system is fully optimized for your daily teaching journey. ENJOY LEARNING WITH BOISER EDUCATIONAL RESOURCES",
+      tl: "Sa pagtatapos, ang aming 1.0 TB infrastructure at 10x Deep Cleaner ay nagsisiguro ng bilis para sa 200,000 na guro. Ang system ay handa na para sa inyong pagtuturo. ENJOY LEARNING WITH BOISER EDUCATIONAL RESOURCES",
+      bis: "Sa pagtapos, ang among 1.0 TB infrastructure ug 10x Deep Cleaner nagsiguro sa kapaspas para sa 200,000 ka magtutudlo. Ang sistema andam na alang sa inyong pagpanudlo. ENJOY LEARNING WITH BOISER EDUCATIONAL RESOURCES"
     },
     keyPoints: [
-      { en: "Steaven Kinth Boiser is strictly a support tool for teachers", tl: "Ito ay suportang kagamitan lamang para sa mga guro", bis: "Kining sistema ay suporta lamang nga gamit para sa magtutudlo" },
-      { en: "Protected Codebase with Live Breach Signal Alerts", tl: "Protektadong Code Base na may Live Alarm Laban sa Pagnanakaw", bis: "Protektado nga Code Base nga may Live Alarm Laban sa Pagpangawat" },
-      { en: "Welcome to LNNCHS SY 2026-2027 Master Ecosystem!", tl: "Maligayang Pagdating sa LNNCHS SY 2026-2027 Ecosystem!", bis: "Maayong Pag-abot sa LNNCHS SY 2026-2027 Ecosystem!" }
+      { en: "10x Deep Cleaner Logic", tl: "10x Deep Cleaner Logic", bis: "10x Deep Cleaner Logic" },
+      { en: "Zero Lag Architecture", tl: "Walang Lag na Arkitektura", bis: "Walay Lag nga Arkitektura" },
+      { en: "20GB Safety Reserve Locked", tl: "20GB Safety Reserve Locked", bis: "20GB Safety Reserve Locked" }
     ]
   }
 ];
@@ -165,30 +190,61 @@ export const HugeTVTourGuideModal: React.FC<HugeTVTourGuideModalProps> = ({
   onClose,
   autoPlayVoice = true
 }) => {
-  const { currentUser, activeLogoUrl } = useAuth();
+  const { currentUser, isOwner, activeLogoUrl } = useAuth();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [selectedLang, setSelectedLang] = useState<'en' | 'tl' | 'bis'>('en');
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
   const [isTvPowerOn, setIsTvPowerOn] = useState(true);
   const [tvVolume, setTvVolume] = useState(0.9);
   const [isMuted, setIsMuted] = useState(false);
-  const [autoAdvanceTimer, setAutoAdvanceTimer] = useState<number>(30); // 30s per step for 2-3 min total
+  const [autoAdvanceTimer, setAutoAdvanceTimer] = useState<number>(25); // 25s per step for 2.5 min total
 
-  const activeStep = TV_TOUR_STEPS[currentStepIndex];
-  const StepIcon = activeStep.icon;
+  const activeStep = TV_TOUR_STEPS[currentStepIndex] || TV_TOUR_STEPS[0];
+  const StepIcon = activeStep?.icon || GraduationCap;
 
-  // Speak Lecture Text using Speech Synthesis with Calm, Clear, Respectful Cebuano Male Voice
+  const getDynamicUpgradeText = (lang: 'en' | 'tl' | 'bis') => {
+    const isOwnerUser = isOwner || currentUser?.email === 'boisersteavenkinth@gmail.com';
+    
+    if (lang === 'bis') {
+      let text = "Dugang pa niana, nakit-an sa among sistema ang pinakabag-o nga mga upgrade para sa bersyon 3.3.0. Gi-integrate na nato ang state-locked confirmation dialogs aron malikayan ang aksidente nga pagkapapas sa datos sa master database. Naa na pud kitay automated Google PlayStore deployment wrapper nga sayon ra i-install sa tanan.";
+      if (isOwnerUser) {
+        text += " Alang kanimo isip Master Creator: andam na usab ang mga administrative keys ug live firestore system signaling.";
+      }
+      return text;
+    } else if (lang === 'tl') {
+      let text = "Bukod dito, nakita ng aming system ang pinakabagong mga upgrade para sa bersyon 3.3.0. Idinagdag po natin ang state-locked confirmation dialogs para maiwasan ang aksidenteng pagbura ng data sa master database. Mayroon na ring automated Google PlayStore deployment wrapper para sa mabilis na installation.";
+      if (isOwnerUser) {
+        text += " At para sa iyo bilang Master Creator: aktibo na rin ang mga administrative keys at real-time firestore system signaling.";
+      }
+      return text;
+    } else {
+      let text = "Additionally, our system has detected the latest core upgrades for version 3.3.0. We have successfully integrated state-locked deletion confirmation dialogs to prevent accidental data loss in the master database. We have also introduced the automated Google PlayStore deployment compiler, making direct mobile installations effortless.";
+      if (isOwnerUser) {
+        text += " For you as the Master Creator: the private system configurations, administrative keys, and real-time firestore signaling pipelines are fully operational.";
+      }
+      return text;
+    }
+  };
+
+  // Speak Lecture Text using Speech Synthesis with Calm, Clear, Professional Male Voice
   const speakLecture = (stepIdx: number, lang: 'en' | 'tl' | 'bis') => {
     if (!('speechSynthesis' in window) || isMuted) return;
 
     stopVoice();
 
-    const baseText = TV_TOUR_STEPS[stepIdx].lectureText[lang];
+    const step = TV_TOUR_STEPS[stepIdx] || TV_TOUR_STEPS[0];
+    if (!step) return;
+
+    let baseText = step.lectureText[lang];
+    if (stepIdx === 0 || stepIdx === 4) {
+      baseText += " " + getDynamicUpgradeText(lang);
+    }
+
     setIsPlayingVoice(true);
-    speakWithCebuanoMaleVoice(baseText, {
+    speakWithProfessionalMaleVoice(baseText, {
       appendTagline: true,
-      rate: 0.88,
-      pitch: 0.86,
+      rate: 0.9,
+      pitch: 0.9,
       onStart: () => setIsPlayingVoice(true),
       onEnd: () => setIsPlayingVoice(false),
       onError: () => setIsPlayingVoice(false)
@@ -196,7 +252,7 @@ export const HugeTVTourGuideModal: React.FC<HugeTVTourGuideModalProps> = ({
   };
 
   const stopVoice = () => {
-    stopCebuanoMaleVoice();
+    stopProfessionalMaleVoice();
     setIsPlayingVoice(false);
   };
 
@@ -220,7 +276,7 @@ export const HugeTVTourGuideModal: React.FC<HugeTVTourGuideModalProps> = ({
         if (prev <= 1) {
           if (currentStepIndex < TV_TOUR_STEPS.length - 1) {
             setCurrentStepIndex((s) => s + 1);
-            return 30;
+            return 25;
           }
           return 0;
         }
@@ -285,7 +341,7 @@ export const HugeTVTourGuideModal: React.FC<HugeTVTourGuideModalProps> = ({
               <button
                 onClick={() => {
                   setIsTvPowerOn(true);
-                  setAutoAdvanceTimer(30);
+                  setAutoAdvanceTimer(25);
                 }}
                 className="px-6 py-2.5 bg-blue-700 hover:bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg transition"
               >
@@ -335,12 +391,12 @@ export const HugeTVTourGuideModal: React.FC<HugeTVTourGuideModalProps> = ({
                 <div className="flex flex-wrap items-center gap-2 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800">
                   <button
                     onClick={() => {
-                      executeSwitchToCebuanoMaleVoiceCommand("Voice command executed! Tour guide set to calm, clear Cebuano male voice accent.");
+                      executeSwitchToProfessionalMaleVoiceCommand("Voice command executed! Tour guide set to calm, clear professional male voice.");
                     }}
                     className="px-3 py-1 rounded-xl text-[10px] font-black uppercase bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 flex items-center gap-1 shadow-md hover:brightness-110 cursor-pointer border border-amber-300"
-                    title="Command: Set voice to calm, clear Cebuano-accented male voice with clear pronunciation"
+                    title="Command: Set voice to calm, clear professional male voice with clear pronunciation"
                   >
-                    <span>🎙️ COMMAND: SET CEBUANO MALE VOICE</span>
+                    <span>🎙️ COMMAND: SET PROFESSIONAL MALE VOICE</span>
                   </button>
 
                   <div className="h-4 w-[1px] bg-slate-700 hidden sm:block" />
@@ -432,7 +488,7 @@ export const HugeTVTourGuideModal: React.FC<HugeTVTourGuideModalProps> = ({
                       key={st.id}
                       onClick={() => {
                         setCurrentStepIndex(idx);
-                        setAutoAdvanceTimer(30);
+                        setAutoAdvanceTimer(25);
                       }}
                       className={`h-2.5 rounded-full transition-all cursor-pointer ${
                         idx === currentStepIndex
@@ -468,7 +524,7 @@ export const HugeTVTourGuideModal: React.FC<HugeTVTourGuideModalProps> = ({
                     disabled={currentStepIndex === 0}
                     onClick={() => {
                       setCurrentStepIndex((prev) => Math.max(0, prev - 1));
-                      setAutoAdvanceTimer(30);
+                      setAutoAdvanceTimer(25);
                     }}
                     className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-white font-bold text-xs flex items-center gap-1 transition cursor-pointer"
                   >
@@ -480,7 +536,7 @@ export const HugeTVTourGuideModal: React.FC<HugeTVTourGuideModalProps> = ({
                     onClick={() => {
                       if (currentStepIndex < TV_TOUR_STEPS.length - 1) {
                         setCurrentStepIndex((prev) => prev + 1);
-                        setAutoAdvanceTimer(30);
+                        setAutoAdvanceTimer(25);
                       } else {
                         stopVoice();
                         onClose();

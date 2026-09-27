@@ -58,6 +58,8 @@ import {
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { LNNCHSTeacherLoadingSummaryDashboard } from './LNNCHSTeacherLoadingSummaryDashboard';
+import { DepEdLdnOlsStatusIndicator } from './DepEdLdnOlsStatusIndicator';
+import { DepEdLdnOlsLeaveModal } from './DepEdLdnOlsLeaveModal';
 
 export const LNNCHSSHSFacultyAndExamsModule: React.FC = () => {
   const [activeTab, setActiveTab] = useState<
@@ -879,6 +881,14 @@ export const LNNCHSSHSFacultyAndExamsModule: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* DEPED LDN OLS LEAVE PORTAL BANNER (5:00PM–7:00PM) */}
+      <DepEdLdnOlsStatusIndicator
+        teacherName={absentTeacherName || 'SHS Teacher'}
+        isShsTeacher={true}
+        position="Senior High School Faculty"
+        advisoryClass="LNNCHS SHS"
+      />
 
       {/* ================= 2. TAB NAVIGATION ================= */}
       <div className="flex flex-wrap bg-stone-200/90 p-1.5 rounded-2xl gap-2 shadow-inner">

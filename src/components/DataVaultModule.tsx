@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Database, ShieldCheck, FolderGit2, BookOpen, Lightbulb, Archive, Settings, CheckCircle2, AlertTriangle, Search, Plus, RefreshCw, Cpu, FileText, HardDrive, Sparkles } from 'lucide-react';
 import { useStorageManager } from '../hooks/useStorageManager';
+import { AppUpdateManager } from './AppUpdateManager';
+import { SecuritySignalAlert } from './SecuritySignalAlert';
 
 interface VaultRecord {
   id: string;
@@ -16,7 +18,7 @@ interface VaultRecord {
 }
 
 export const DataVaultModule: React.FC = () => {
-  const { breakdown, maximize500GBCacheVault, runAutoCacheMaintenanceCleaner, isClearing, clearResult } = useStorageManager();
+  const { breakdown, maximize1000GBCacheVault, runAutoCacheMaintenanceCleaner, isClearing, clearResult } = useStorageManager();
   const [activeSection, setActiveSection] = useState<'all' | 'Knowledge Library' | 'Innovation Lab' | 'Project Memory' | 'Verification Center' | 'User Preferences' | 'Archive'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showNewModal, setShowNewModal] = useState(false);
@@ -137,6 +139,15 @@ export const DataVaultModule: React.FC = () => {
         </button>
       </div>
 
+      {/* MASTER'S DOOR CONTROL CONSOLE */}
+      <div className="p-6 bg-slate-900/90 border-2 border-cyan-400/50 rounded-3xl space-y-4 shadow-2xl">
+        <div className="flex items-center gap-2 text-cyan-300 font-black text-xs uppercase tracking-widest border-b border-cyan-500/30 pb-2">
+          <span>🔐 MASTER'S DOOR — MASTER CREATOR CONTROL CONSOLE</span>
+        </div>
+        <SecuritySignalAlert />
+        <AppUpdateManager />
+      </div>
+
       {/* 500 GB Offline Data Vault Quota, Headroom & Maintenance Panel */}
       <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-stone-900 rounded-3xl p-6 sm:p-8 text-white border-2 border-amber-400/50 shadow-xl space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-4">
@@ -161,12 +172,12 @@ export const DataVaultModule: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={() => maximize500GBCacheVault()}
+              onClick={() => maximize1000GBCacheVault()}
               disabled={isClearing}
               className="px-4 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:brightness-110 text-stone-950 font-black text-xs uppercase rounded-xl shadow-md border border-amber-200 transition cursor-pointer flex items-center gap-1.5 disabled:opacity-60"
             >
               <Sparkles className="w-4 h-4 text-stone-950 animate-pulse" />
-              <span>⚡ Maximize 500 GB Vault</span>
+              <span>⚡ Maximize 1,000 GB Vault</span>
             </button>
 
             <button

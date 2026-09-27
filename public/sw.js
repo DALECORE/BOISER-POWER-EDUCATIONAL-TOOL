@@ -1,5 +1,5 @@
 // BOISER POWER TOOLS LITE — Universal Offline Service Worker
-const CACHE_NAME = 'boiser-power-tools-v3';
+const CACHE_NAME = 'boiser-power-tools-v3.4.1-latest';
 const SHELL_ASSETS = [
   '/',
   '/index.html',

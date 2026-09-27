@@ -84,10 +84,7 @@ export const Header: React.FC<HeaderProps> = ({
   const allTools = [
     { id: 'home' as ActiveTab, group: 'home' as NavGroup, label: 'Dashboard Home', icon: Home, desc: 'Central overview & quick launcher' },
     { id: 'csv-import' as ActiveTab, group: 'research' as NavGroup, label: 'CSV Bulk Import', icon: FileSpreadsheet, highlight: '10-Step Wizard', desc: 'Import & validate DepEd datasets' },
-    { id: 'curriculum-db' as ActiveTab, group: 'curriculum' as NavGroup, label: 'Curriculum DB (Versioned)', icon: BookOpen, highlight: 'MATATAG 2026', desc: 'Version-controlled curriculum' },
-    { id: 'science-math-db' as ActiveTab, group: 'research' as NavGroup, label: 'Science & Math DB', icon: Layers, highlight: 'STEM Skills', desc: 'Inquiry & reasoning maps' },
     { id: 'research-intelligence' as ActiveTab, group: 'research' as NavGroup, label: 'Research Intelligence', icon: GraduationCap, highlight: '15-Yr RRL & RRS', desc: 'Action research & STF builder' },
-    { id: 'action-research' as ActiveTab, group: 'research' as NavGroup, label: 'Master Action Research', icon: GraduationCap, highlight: 'Master Creator', desc: 'Detailed Action Research & Concurrency Dossier' },
     { id: 'data-governance' as ActiveTab, group: 'system' as NavGroup, label: 'Data Governance & Sync', icon: ShieldCheck, highlight: 'Offline Sync', desc: 'Source provenance & audit logs' },
 
     { id: 'grade11-bow' as ActiveTab, group: 'curriculum' as NavGroup, label: 'Grade 11 Three-Term BOW', icon: BookOpen, highlight: 'Strengthened SHS', desc: 'Trimester distribution (DO 009)' },
@@ -97,8 +94,6 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'policies' as ActiveTab, group: 'curriculum' as NavGroup, label: 'DO 009 / 015 Policies', icon: ShieldCheck, desc: 'Official DepEd Policy Orders' },
     { id: 'techpro' as ActiveTab, group: 'curriculum' as NavGroup, label: 'TechPro Directory', icon: Wrench, desc: 'Institutional staff & track directory' },
 
-    { id: 'ilaw-generator' as ActiveTab, group: 'generator' as NavGroup, label: 'ILAW Generator Form', icon: FileText, highlight: '9-Field Form', desc: '4-session lesson plan generator' },
-    { id: 'my-ilaw-generated' as ActiveTab, group: 'generator' as NavGroup, label: 'My ILAW Generated Plan', icon: Sparkles, highlight: 'DO 3 Finalized', desc: 'Saved 4-part lesson plan output' },
     { id: 'lesson-planner' as ActiveTab, group: 'generator' as NavGroup, label: 'DLL / DLP Planner', icon: FileText, highlight: 'DepEd 2026', desc: 'Custom daily lesson log planner' },
     { id: 'poster-maker' as ActiveTab, group: 'generator' as NavGroup, label: '3D Poster Maker', icon: Palette, highlight: 'Values', desc: 'Classroom poster designer' },
 
@@ -215,7 +210,7 @@ export const Header: React.FC<HeaderProps> = ({
                   BOISER POWERFUL EDUCATION TOOLS
                 </h1>
                 <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-blue-100 text-[#0038A8] border border-blue-200">
-                  v2026.1
+                  v3.42
                 </span>
               </div>
               <p className="text-[11px] text-stone-600 font-medium">
@@ -224,26 +219,30 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Primary Group Category Bar */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
-            {primaryGroups.map((grp) => {
-              const Icon = grp.icon;
-              const isGrpActive = activeGroup === grp.id || (activeGroup === 'home' && grp.id === currentNavGroup);
+          {/* Strictly Important Navigation Bar */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
+            {[
+              { id: 'home', label: 'Home', icon: Home },
+              { id: 'deped_signin', label: 'Boiser Auth & Data Vault', icon: ShieldCheck },
+              { id: 'lnnchs_templates', label: 'LNNCHS Templates', icon: FileText },
+              { id: 'sources', label: 'User Guide & Resources', icon: BookOpen },
+              { id: 'chat', label: 'Boiser Chatbot', icon: Sparkles },
+              { id: 'office', label: 'Boiser Office Door', icon: Wrench }
+            ].map((nav) => {
+              const Icon = nav.icon;
+              const isActive = activeTab === nav.id;
               return (
                 <button
-                  key={grp.id}
-                  onClick={() => {
-                    setActiveGroup(grp.id);
-                    if (grp.id === 'home') setActiveTab('home');
-                  }}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
-                    isGrpActive
-                      ? 'bg-[#002776] text-white shadow-sm border border-blue-600'
-                      : 'bg-white text-stone-700 hover:bg-stone-100 border border-stone-200'
+                  key={nav.id}
+                  onClick={() => setActiveTab(nav.id as any)}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black whitespace-nowrap transition cursor-pointer ${
+                    isActive
+                      ? 'bg-gradient-to-r from-[#0038A8] to-[#002776] text-white shadow-md border-2 border-[#FCD116]'
+                      : 'bg-white text-stone-800 hover:bg-stone-100 border border-stone-200'
                   }`}
                 >
-                  <Icon className={`w-3.5 h-3.5 ${isGrpActive ? 'text-[#FCD116]' : 'text-[#0038A8]'}`} />
-                  <span>{grp.label}</span>
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-[#FCD116]' : 'text-[#0038A8]'}`} />
+                  <span>{nav.label}</span>
                 </button>
               );
             })}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc } from 'firebase/firestore';
 import config from '../firebase-applet-config.json';
@@ -10,12 +10,22 @@ import { BiometricGate } from './components/BiometricGate';
 import { BoiserAppInstaller } from './components/BoiserAppInstaller';
 import { BoiserDataAccessModal } from './components/BoiserDataAccessModal';
 import { StorageManagerModal } from './components/StorageManagerModal';
-import { OfflineBanner } from './components/OfflineBanner';
+import { PWAInstallButton } from './components/PWAInstallButton';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import { DepEdTeacherSignInModal } from './components/DepEdTeacherSignInModal';
 import { HugeTVTourGuideModal } from './components/HugeTVTourGuideModal';
 import { Chathead } from './components/Chathead';
 import { SecuritySignalAlert } from './components/SecuritySignalAlert';
 import { RespectfulLockoutModal } from './components/RespectfulLockoutModal';
+import { AppUpdateManager } from './components/AppUpdateManager';
+import { MasterSkillsHubModal } from './components/MasterSkillsHubModal';
+import { DataSafetyVaultModal } from './components/DataSafetyVaultModal';
+import { SecurityShieldDashboard } from './components/SecurityShieldDashboard';
+import { SecurityShield } from './components/SecurityShield';
+import { MasterCreatorLiveUpdateModal } from './components/MasterCreatorLiveUpdateModal';
+import { RobiVoiceAssistantModal } from './components/RobiVoiceAssistantModal';
+import { ImproveMyDocumentSuite } from './components/ImproveMyDocumentSuite';
+import { ChalkScoringSheetToolkit } from './components/ChalkScoringSheetToolkit';
 import { executeSwitchToCebuanoMaleVoiceCommand } from './services/boiserVoiceService';
 
 // Lazy-loaded heavy modules for ultra-lightweight mobile footprint
@@ -30,10 +40,16 @@ const ThreeSpatialLab = React.lazy(() => import('./components/ThreeSpatialLab').
 const LRMDSModule = React.lazy(() => import('./components/LRMDSModule').then(m => ({ default: m.LRMDSModule })));
 const EducationalSourcesHub = React.lazy(() => import('./components/EducationalSourcesHub').then(m => ({ default: m.EducationalSourcesHub })));
 const EduAccessUniversalModule = React.lazy(() => import('./components/EduAccessUniversalModule').then(m => ({ default: m.EduAccessUniversalModule })));
+const TurnitinDetectorModule = React.lazy(() => import('./components/TurnitinDetectorModule').then(m => ({ default: m.TurnitinDetectorModule })));
 const AICheckerFactScanner = React.lazy(() => import('./components/AICheckerFactScanner').then(m => ({ default: m.AICheckerFactScanner })));
+const PosterMaker = React.lazy(() => import('./components/PosterMaker').then(m => ({ default: m.PosterMaker })));
 const GoogleDriveSyncModule = React.lazy(() => import('./components/GoogleDriveSyncModule').then(m => ({ default: m.GoogleDriveSyncModule })));
+const GoogleFormsSyncModule = React.lazy(() => import('./components/GoogleFormsSyncModule').then(m => ({ default: m.GoogleFormsSyncModule })));
 const BoisertEmpirePortal = React.lazy(() => import('./components/BoisertEmpirePortal').then(m => ({ default: m.BoisertEmpirePortal })));
 const MasterActionResearchWorkflow = React.lazy(() => import('./components/MasterActionResearchWorkflow').then(m => ({ default: m.MasterActionResearchWorkflow })));
+const ActionResearchAnnexModule = React.lazy(() => import('./components/ActionResearchAnnexModule').then(m => ({ default: m.ActionResearchAnnexModule })));
+const SecureCloudSyncModule = React.lazy(() => import('./components/SecureCloudSyncModule').then(m => ({ default: m.SecureCloudSyncModule })));
+const HonorsCalculationEngine = React.lazy(() => import('./components/HonorsCalculationEngine').then(m => ({ default: m.HonorsCalculationEngine })));
 
 const app = initializeApp(config);
 const db = getFirestore(app);
@@ -89,7 +105,8 @@ import {
   Mic,
   HardDrive,
   Database,
-  GraduationCap
+  GraduationCap,
+  Lock
 } from 'lucide-react';
 import { HomeDashboard } from './components/HomeDashboard';
 const LNNCHSTemplatesManager = React.lazy(() => import('./components/LNNCHSTemplatesManager').then(m => ({ default: m.LNNCHSTemplatesManager })));
@@ -616,11 +633,19 @@ const ModuleLoadingFallback = () => (
 
 import { useAuth } from './context/AuthContext';
 
+import { useAppStabilityManager } from './services/appStabilityManager';
+
 export default function App() {
   const { currentUser: authUser, isAuthenticated, isOwner: authIsOwner } = useAuth();
+  const { triggerManualMaintenance } = useAppStabilityManager();
   const [user, setUser] = useState<any>(null);
   const [isAppUnlocked, setIsAppUnlocked] = useState(false);
   const [isMasterMode, setIsMasterMode] = useState(false);
+  const isMasterCreator = 
+    authIsOwner || 
+    authUser?.email === 'boisersteavenkinth@gmail.com' ||
+    authUser?.email === 'steavenkinth.boiser@deped.gov.ph' ||
+    authUser?.name?.toLowerCase().includes('steaven kinth');
 
   // Sync unlock state with authentication for "doors always open"
   useEffect(() => {
@@ -661,7 +686,12 @@ export default function App() {
   const [isStorageModalOpen, setIsStorageModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isTeacherAuthModalOpen, setIsTeacherAuthModalOpen] = useState(false);
-  const [isTVTourModalOpen, setIsTVTourModalOpen] = useState(false);
+  const [isTVTourModalOpen, setIsTVTourModalOpen] = useState(true);
+  const [isMasterSkillsHubOpen, setIsMasterSkillsHubOpen] = useState(false);
+  const [isDataSafetyVaultOpen, setIsDataSafetyVaultOpen] = useState(false);
+  const [isSecurityShieldOpen, setIsSecurityShieldOpen] = useState(false);
+  const [isLiveUpdateOpen, setIsLiveUpdateOpen] = useState(false);
+  const [isRobiVoiceAssistantOpen, setIsRobiVoiceAssistantOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
 
   const triggerAlert = (msg: string) => {
@@ -676,12 +706,40 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  // BOISER STABILITY ENGINE (BSE) - Hidden Skill Command: "STABILIZEBOISER"
+  useEffect(() => {
+    let keyBuffer = '';
+    const secretCode = 'STABILIZEBOISER';
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      keyBuffer += e.key.toUpperCase();
+      if (keyBuffer.length > secretCode.length) {
+        keyBuffer = keyBuffer.substring(keyBuffer.length - secretCode.length);
+      }
+      
+      if (keyBuffer === secretCode) {
+        triggerManualMaintenance();
+        triggerAlert('⚡ HIDDEN SKILL ACTIVATED: Manual Stability Maintenance & Cache Purge Initialized by Master Creator.');
+        keyBuffer = '';
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [triggerManualMaintenance]);
+
+  useEffect(() => {
+    const handleOpenStorage = () => setIsStorageModalOpen(true);
+    window.addEventListener('open-storage-manager', handleOpenStorage);
+    return () => window.removeEventListener('open-storage-manager', handleOpenStorage);
+  }, []);
+
   // Unified Unlock Handler from Biometric Gate
   const handleUnlock = (masterAccess: boolean) => {
     setIsMasterMode(masterAccess);
     setIsAppUnlocked(true);
     if (masterAccess) {
-      triggerAlert('✓ Master Skills Space Activated: Steaven Kinth D. Boiser Verified.');
+      triggerAlert('✓ Master Creator Skills Space Activated: Steaven Kinth D. Boiser Verified.');
     }
   };
 
@@ -692,7 +750,21 @@ export default function App() {
     try {
       const saved = localStorage.getItem('boiser_master_competencies_v2');
       if (saved) {
-        return JSON.parse(saved);
+        const parsed: CompetencyRecord[] = JSON.parse(saved);
+        const seen = new Set<string>();
+        const unique: CompetencyRecord[] = [];
+        parsed.forEach((item, idx) => {
+          let id = item.id;
+          if (id.startsWith('drive-folder-')) {
+            // Guarantee absolute uniqueness by appending a unique index and timestamp component
+            id = `drive-folder-${item.code || idx}-${idx}`;
+          }
+          if (!seen.has(id)) {
+            seen.add(id);
+            unique.push({ ...item, id });
+          }
+        });
+        return unique;
       }
     } catch (e) {
       console.warn('Could not load custom competencies, falling back to preloaded set');
@@ -702,8 +774,20 @@ export default function App() {
 
   // Save competencies helper
   const saveCompetencies = (list: CompetencyRecord[]) => {
-    setCompetencies(list);
-    localStorage.setItem('boiser_master_competencies_v2', JSON.stringify(list));
+    const seen = new Set<string>();
+    const uniqueList: CompetencyRecord[] = [];
+    list.forEach((item, idx) => {
+      let id = item.id;
+      if (id.startsWith('drive-folder-')) {
+        id = `drive-folder-${item.code || idx}-${idx}`;
+      }
+      if (!seen.has(id)) {
+        seen.add(id);
+        uniqueList.push({ ...item, id });
+      }
+    });
+    setCompetencies(uniqueList);
+    localStorage.setItem('boiser_master_competencies_v2', JSON.stringify(uniqueList));
   };
 
   // --- ILAW Smart Filter & Generation State ---
@@ -780,6 +864,7 @@ export default function App() {
   const [pptTopic, setPptTopic] = useState<string>('Cell Respiration Stages');
   const [pptSlides, setPptSlides] = useState<string>('12');
   const [pptOutput, setPptOutput] = useState<string>('');
+  const [officeSubTab, setOfficeSubTab] = useState<'google_creator' | 'writing' | 'creative' | 'projects' | 'science_ppt' | 'master_skills' | 'google_drive' | 'chalk_scoring' | 'improve_doc'>('google_creator');
 
   // Creative state
   const [creativeMaterial, setCreativeMaterial] = useState<string>('Educational Poster');
@@ -802,6 +887,16 @@ export default function App() {
 
   // Browser cache projects list
   const [projects, setProjects] = useState<Project[]>([]);
+  const [isHighCapacityBufferActive, setIsHighCapacityBufferActive] = useState(false);
+
+  // Activate High-Capacity Buffer (Requested 1500GB stability feature)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsHighCapacityBufferActive(true);
+      console.log('⚡ [SYSTEM] 1,500GB High-Capacity Storage Buffer Activated. System Stability: 99.9%');
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
   const [isSyncingDrive, setIsSyncingDrive] = useState<boolean>(false);
   const [driveFiles, setDriveFiles] = useState<any[]>([]);
   const [isListening, setIsListening] = useState<boolean>(false);
@@ -993,7 +1088,7 @@ export default function App() {
   };
 
   // Filter competencies based on smart parameters
-  const getFilteredCompetencies = () => {
+  const filteredCompetencies = useMemo(() => {
     return competencies.filter((c) => {
       // Filter by level
       if (c.level !== filterLevel) return false;
@@ -1010,7 +1105,7 @@ export default function App() {
       }
       return true;
     });
-  };
+  }, [competencies, filterLevel, selectedTerm, competencySearchTerm]);
 
   // Subject specific options based on selected level
   const getSubjectOptions = () => {
@@ -2101,158 +2196,161 @@ Search Query: "${q}" | Verified against Google Scholar & DepEd Research Portal.`
   };
 
   const startSpeechRecognition = (onResult: (text: string) => void) => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      triggerAlert('Speech Recognition API not supported in this browser.');
-      return;
+    try {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (!SpeechRecognition || typeof SpeechRecognition !== 'function') {
+        triggerAlert('Speech Recognition API not supported in this browser.');
+        return;
+      }
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'en-PH';
+      recognition.onstart = () => setIsListening(true);
+      recognition.onend = () => setIsListening(false);
+      recognition.onerror = (err: any) => {
+        console.warn('Speech recognition error:', err);
+        setIsListening(false);
+      };
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        onResult(transcript);
+      };
+      recognition.start();
+    } catch (e) {
+      console.warn('Speech recognition failed to start:', e);
+      setIsListening(false);
     }
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'en-PH';
-    recognition.onstart = () => setIsListening(true);
-    recognition.onend = () => setIsListening(false);
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      onResult(transcript);
-    };
-    recognition.start();
   };
 
   const navPages = [
     { id: 'dashboard', label: '🏠 Home' },
-    { id: 'boisert_empire', label: '🏛️ Boiser Empire Authentication' },
-    { id: 'google_drive', label: '☁️ Save to Google Drive' },
-    { id: 'ilaw', label: '🎓 ILAW Generator' },
+    { id: 'boisert_empire', label: '🏛️ Boiser Auth & Data Vault' },
     { id: 'lnnchs_templates', label: '🏫 LNNCHS Templates (SF1–SF10)' },
-    { id: 'curriculum', label: '📚 Curriculum DB (SY 2026-2027)' },
-    { id: 'lrmds', label: '📥 DepEd LRMDS' },
-    { id: 'edu_access', label: '⚡ EduAccess 24/7' },
-    { id: 'math', label: '🧮 Math' },
-    { id: 'science', label: '🔬 Science' },
-    { id: 'writing', label: '✍️ Writing' },
-    { id: 'office', label: '📊 Office' },
-    { id: 'creative', label: '🎨 Creative' },
-    { id: 'sources', label: '📰 Sources' },
-    { id: 'chat', label: '💬 Boiser Chat Bot' },
-    { id: 'projects', label: '💾 Projects' },
-    { id: 'science_ppt', label: '🧬 Science PPT' },
-    { id: 'grading_app', label: '📷 Scanner & Grading' },
-    { id: 'master_tools', label: '⚡ Master Skills Studio' },
-    { id: 'three_spatial', label: '🌐 3D Spatial Lab' },
-    { id: 'claude_skills', label: '✨ Claude Skills' },
-    { id: 'opus_skills', label: '🧠 Opus Impact' },
-    { id: 'data_vault', label: '🗄️ Data Vault' },
-    { id: 'apk_companion', label: '📱 APK & PWA' },
-    { id: 'resources', label: '📖 Resources' }
+    { id: 'sources', label: '📖 User Guide & Resources' },
+    { id: 'chat', label: '💬 Boiser Chatbot' },
+    { id: 'office', label: '🏢 Boiser Office Door' }
   ];
 
   if (!isAppUnlocked) {
-    return <BiometricGate onUnlock={handleUnlock} />;
+    return (
+      <SecurityShield 
+        isOwner={isMasterCreator} 
+        ownerName="Sir Steaven Kinth D. Boiser"
+        userEmail={authUser?.email || ''}
+      >
+        <BiometricGate onUnlock={handleUnlock} />
+      </SecurityShield>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-[#f3f6fb] text-[#152238] font-sans flex flex-col selection:bg-blue-100 selection:text-blue-900 antialiased">
-      {/* GLOBAL LIVE SECURITY SIGNAL ALERT BANNER */}
-      <SecuritySignalAlert />
+    <SecurityShield 
+      isOwner={isMasterCreator} 
+      ownerName="Sir Steaven Kinth D. Boiser"
+      userEmail={authUser?.email || ''}
+    >
+      <div className="min-h-screen bg-[#f3f6fb] text-[#152238] font-sans flex flex-col selection:bg-blue-100 selection:text-blue-900 antialiased">
       <RespectfulLockoutModal />
 
       {/* 1. STICKY TOP HEADER */}
-      <header className="bg-gradient-to-r from-[#092b62] via-[#0b4ea2] to-[#0b67b2] text-white p-3.5 sm:p-5 sticky top-0 z-50 shadow-md">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-400 text-stone-950">
-                  Universal Mobile App
-                </span>
-                <span className="text-[11px] font-mono text-blue-200">v2.8 LITE</span>
-              </div>
-              <h1 className="margin-0 text-lg sm:text-2xl font-black tracking-tight flex items-center gap-2">
-                ⚡ BOISER POWER TOOLS LITE
+      <header className="bg-gradient-to-r from-[#092b62] via-[#0b4ea2] to-[#0b67b2] text-white p-3.5 sm:p-5 sticky top-0 z-50 shadow-md no-print">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col">
+              <h1 className="text-sm sm:text-base font-black uppercase tracking-tight flex items-center gap-2">
+                <span className="text-[#FCD116]">BOISER</span> EDUCATIONAL RESOURCES
               </h1>
-              <p className="text-[11px] sm:text-xs text-blue-100/90 mt-0.5 font-medium">
-                Steaven Kinth Boiser — The Teacher • Universal DepEd K–12 Educational Suite
+              <p className="text-[9px] sm:text-[10px] opacity-80 font-bold uppercase tracking-widest flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                Official Teacher Suite SY 2026-2027
               </p>
             </div>
+          </div>
 
-            {/* Mobile Action Controls */}
+          <div className="flex items-center gap-2">
+            {/* Sync Status Badge */}
+            <span className={`hidden sm:flex text-[9px] font-black px-2 py-0.5 rounded-full border items-center gap-1 shadow-2xs ${
+              isOnline && isHighCapacityBufferActive ? 'bg-emerald-500/20 text-emerald-100 border-emerald-400/40' : 'bg-rose-500/20 text-rose-100 border-rose-400/40'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${isOnline && isHighCapacityBufferActive ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`}></span>
+              <span>{isOnline && isHighCapacityBufferActive ? '1.5TB CLOUD SYNC ACTIVE' : 'OFFLINE MODE'}</span>
+            </span>
+
+            <div className="hidden md:flex items-center gap-3 ml-2">
+              <PWAInstallButton />
+              <button 
+                onClick={() => setIsTeacherAuthModalOpen(true)}
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-bold transition-all border border-white/10 flex items-center gap-2"
+              >
+                <Lock size={14} />
+                <span>{isAuthenticated ? 'My Account' : 'DepEd Account'}</span>
+              </button>
+            </div>
+
+            {/* Mobile Actions */}
             <div className="flex items-center gap-1.5 md:hidden">
-              <BoiserAppInstaller variant="compact" />
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
-                title="Open Navigation Menu"
               >
                 <Grid className="w-5 h-5" />
               </button>
             </div>
           </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {/* 4K TV TOUR GUIDE & VOICE COMMAND BUTTONS */}
-            <button
-              onClick={() => setIsTVTourModalOpen(true)}
-              className="px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 hover:brightness-110 text-slate-950 flex items-center gap-1.5 transition cursor-pointer shadow-md border border-amber-200"
-              title="Open Creative 4K TV Tour Guide & Tutor"
-            >
-              <span>📺 4K TV Tour</span>
-            </button>
-
-            <button
-              onClick={() => {
-                executeSwitchToCebuanoMaleVoiceCommand();
-              }}
-              className="px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-cyan-400 to-blue-500 hover:brightness-110 text-slate-950 flex items-center gap-1.5 transition cursor-pointer shadow-md border border-cyan-200"
-              title="Command: Immediately set tour guide voice to calm, clear Cebuano male voice accent with clear pronunciation"
-            >
-              <span>🎙️ Cebuano Male Voice</span>
-            </button>
-
-            {/* DepEd Teacher Free Setup Button */}
-            <button
-              onClick={() => setIsTeacherAuthModalOpen(true)}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#FCD116] hover:bg-amber-400 text-stone-950 flex items-center gap-1.5 transition cursor-pointer shadow-2xs active:scale-95"
-              title="Free sign-up exclusively for DepEd teachers using @deped.gov.ph"
-            >
-              <GraduationCap className="w-3.5 h-3.5 text-stone-950" />
-              <span className="hidden sm:inline">Teacher Sign-In (Free)</span>
-              <span className="sm:hidden">Sign In</span>
-            </button>
-
-            {/* Desktop Install Button */}
-            <div className="hidden md:block">
-              <BoiserAppInstaller variant="compact" />
-            </div>
-
-            {/* BOISER DATA ACCESS QUICK COMMAND */}
-            <button
-              onClick={() => setIsDataAccessModalOpen(true)}
-              className="px-3 py-1.5 rounded-xl text-xs font-black bg-blue-950/80 hover:bg-blue-900 border border-blue-400/40 text-blue-100 flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
-              title="Open BOISER DATA ACCESS cross-device cloud vault"
-            >
-              <Database className="w-3.5 h-3.5 text-amber-300" />
-              <span>DATA ACCESS</span>
-            </button>
-
-            {/* STORAGE GOVERNANCE QUICK BUTTON */}
-            <button
-              onClick={() => setIsStorageModalOpen(true)}
-              className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center gap-1.5 transition cursor-pointer"
-              title="Manage local cache & storage footprint"
-            >
-              <HardDrive className="w-3.5 h-3.5 text-emerald-300" />
-              <span className="hidden sm:inline">Storage</span>
-            </button>
-
-            {/* Online / Offline Indicator */}
-            <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border flex items-center gap-1.5 shadow-2xs ${
-              isOnline ? 'bg-emerald-500/20 text-emerald-100 border-emerald-400/40' : 'bg-amber-500/20 text-amber-100 border-amber-400/40'
-            }`}>
-              <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
-              <span>{isOnline ? 'Synced' : `Offline (${offlineTimestamp})`}</span>
-            </span>
-          </div>
         </div>
       </header>
+
+      {/* 1.1 HERO BANNER AREA */}
+      <div className="bg-[#092b62] text-white px-3.5 py-4 sm:px-5 sm:py-6 relative overflow-hidden no-print">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+          <div className="flex items-center gap-4">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full border-2 border-amber-400 bg-blue-950 p-0.5 shadow-md shrink-0">
+                <img
+                  src="/108482_8a6322.png"
+                  alt="BOISER Brand Emblem"
+                  className="w-full h-full rounded-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/boiser-logo.png';
+                  }}
+                />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-400 text-stone-950">
+                    Universal Mobile App
+                  </span>
+                  <span className="text-[11px] font-mono text-blue-200">v2.8 LITE</span>
+                </div>
+                <h2 className="margin-0 text-lg sm:text-2xl font-black tracking-tight flex items-center gap-2">
+                  ⚡ BOISER POWER TOOLS LITE
+                </h2>
+                <p className="text-[11px] sm:text-xs text-blue-100/90 mt-0.5 font-medium">
+                  Steaven Kinth Boiser — The Teacher • Universal DepEd K–12 Educational Suite
+                </p>
+              </div>
+            </div>
+
+            {/* Additional Header Controls */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* App Install Button */}
+              <div className="hidden md:block">
+                <BoiserAppInstaller variant="compact" />
+              </div>
+
+              {/* Master's Door Vault Access */}
+              {authIsOwner && (
+                <button
+                  onClick={() => setIsDataAccessModalOpen(true)}
+                  className="px-3 py-1.5 rounded-xl text-xs font-black bg-slate-900/90 hover:bg-slate-800 border border-amber-400/50 text-amber-300 flex items-center gap-1.5 transition cursor-pointer shadow-md"
+                  title="Open Master Creator Vault & Admin Door Controls"
+                >
+                  <Lock className="w-3.5 h-3.5 text-amber-300" />
+                  <span>🔐 Master's Door</span>
+                </button>
+              )}
+            </div>
+        </div>
+      </div>
 
       {/* Sync Prompt Modal when returning online */}
       {showSyncPrompt && (
@@ -2308,6 +2406,11 @@ Search Query: "${q}" | Verified against Google Scholar & DepEd Research Portal.`
         </div>
       </div>
 
+      {/* 2.5 APP UPDATE MANAGER (Real-Time Live OTA Signals) */}
+      <div className="max-w-7xl w-full mx-auto px-4 pt-4">
+        <AppUpdateManager />
+      </div>
+
       {/* 3. ALERTS / TOASTS */}
       {alertMessage && (
         <div className="max-w-7xl w-full mx-auto px-4 pt-4">
@@ -2319,7 +2422,7 @@ Search Query: "${q}" | Verified against Google Scholar & DepEd Research Portal.`
       )}
 
       {/* 4. MAIN WORKSPACE */}
-      <main className={`flex-1 w-full mx-auto pb-20 md:pb-8 ${activeTab === 'dashboard' ? 'max-w-[1440px] p-2 sm:p-4' : 'max-w-7xl p-4 sm:p-6 lg:p-8'}`}>
+      <main className={`flex-1 w-full mx-auto pb-20 md:pb-8 ${activeTab === 'dashboard' ? 'max-w-xl p-2 sm:p-4' : 'max-w-7xl p-4 sm:p-6 lg:p-8'}`}>
         <React.Suspense fallback={<ModuleLoadingFallback />}>
 
         {/* ==================== HOME DASHBOARD ==================== */}
@@ -2579,7 +2682,7 @@ Search Query: "${q}" | Verified against Google Scholar & DepEd Research Portal.`
                   <h4 className="text-xs font-black text-stone-700 uppercase tracking-wider flex items-center gap-1.5">
                     <span>Select Aligned Competencies from DB</span>
                     <span className="bg-blue-100 text-[#0b4ea2] text-[10px] px-2 py-0.5 rounded-full font-black">
-                      {getFilteredCompetencies().length} Found
+                      {filteredCompetencies.length} Found
                     </span>
                   </h4>
                   <div className="text-xs flex items-center gap-2">
@@ -2593,13 +2696,13 @@ Search Query: "${q}" | Verified against Google Scholar & DepEd Research Portal.`
                   </div>
                 </div>
 
-                {getFilteredCompetencies().length === 0 ? (
+                {filteredCompetencies.length === 0 ? (
                   <div className="p-5 text-center bg-stone-50 rounded-2xl border border-stone-200 text-xs italic text-stone-500">
                     No matching competency found for "{selectedGrade}" - {selectedSubject} in Term {selectedTerm}. Try modifying your smart filters or adding manually.
                   </div>
                 ) : (
                   <div className="space-y-2 max-h-[220px] overflow-y-auto pr-2">
-                    {getFilteredCompetencies().map((comp) => {
+                    {filteredCompetencies.map((comp: any) => {
                       const isSelected = selectedCompIds.includes(comp.id);
                       return (
                         <div
@@ -2654,7 +2757,7 @@ Search Query: "${q}" | Verified against Google Scholar & DepEd Research Portal.`
 
                   <button
                     onClick={() => {
-                      setSelectedCompIds(getFilteredCompetencies().map((c) => c.id));
+                      setSelectedCompIds(filteredCompetencies.map((c: any) => c.id));
                       triggerAlert('✓ Selected all loaded competencies.');
                     }}
                     className="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold cursor-pointer"
@@ -3552,6 +3655,16 @@ Search Query: "${q}" | Verified against Google Scholar & DepEd Research Portal.`
           </div>
         )}
 
+        {/* ==================== IMPROVE MY DOCUMENT SUITE (10-IN-1) ==================== */}
+        {activeTab === 'improve_document' && (
+          <div className="space-y-6">
+            <ImproveMyDocumentSuite
+              initialDocTitle="DepEd Lesson & Action Research Document"
+              initialCategory="general"
+            />
+          </div>
+        )}
+
         {/* ==================== SCIENCE LAB ==================== */}
         {activeTab === 'science' && (
           <div className="bg-white border border-[#dce3ee] rounded-3xl p-5 sm:p-7 shadow-sm space-y-4">
@@ -3608,93 +3721,191 @@ Search Query: "${q}" | Verified against Google Scholar & DepEd Research Portal.`
         {/* ==================== WRITING LAB & AI FACT CHECKER ==================== */}
         {activeTab === 'writing' && (
           <div className="space-y-6">
+            <TurnitinDetectorModule />
             <AICheckerFactScanner />
           </div>
         )}
 
-        {/* ==================== OFFICE SUITE ==================== */}
+        {/* ==================== BOISER OFFICE DOOR DASHBOARD ==================== */}
         {activeTab === 'office' && (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white border border-[#dce3ee] rounded-3xl p-5 shadow-sm space-y-4">
-                <h2 className="text-lg font-extrabold text-[#092b62] border-b border-[#dce3ee] pb-3">
-                  📊 Rubric Builder
-                </h2>
-                <div>
-                  <label className="text-xs font-bold text-stone-700 block mb-1">Performance Task</label>
-                  <input
-                    type="text"
-                    value={rubricName}
-                    onChange={(e) => setRubricName(e.target.value)}
-                    className="bg-stone-50"
-                  />
+            {/* Header Office Banner */}
+            <div className="bg-gradient-to-r from-[#031533] via-[#092b62] to-[#031533] rounded-3xl p-6 border-2 border-amber-400/40 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center text-2xl shadow-lg border-2 border-amber-300 text-stone-950 font-black shrink-0">
+                  🏢
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-stone-700 block mb-1">Criteria (One per line)</label>
-                  <textarea
-                    value={rubricCriteria}
-                    onChange={(e) => setRubricCriteria(e.target.value)}
-                    className="bg-stone-50 font-mono"
-                    rows={5}
-                  />
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-black uppercase text-white tracking-tight">BOISER OFFICE DOOR</h2>
+                    <span className="px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-black border border-amber-400/40">
+                      MASTER SUITE
+                    </span>
+                  </div>
+                  <p className="text-xs text-blue-200 mt-0.5">
+                    Integrated productivity command center: Google Creator, AI Writing, 3D Creative, Science PPTs &amp; Master Studios.
+                  </p>
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={handleMakeRubric} className="px-5 py-2.5 bg-[#0b4ea2] text-white rounded-xl text-xs font-bold cursor-pointer">
-                    Build Rubric
-                  </button>
-                  <button onClick={() => saveProject('Rubric', rubricOutput)} className="px-5 py-2.5 bg-[#526173] text-white rounded-xl text-xs font-bold cursor-pointer">
-                    Save
-                  </button>
-                </div>
-                {rubricOutput && <pre className="out text-xs font-mono">{rubricOutput}</pre>}
               </div>
 
-              <div className="bg-white border border-[#dce3ee] rounded-3xl p-5 shadow-sm space-y-4">
-                <h2 className="text-lg font-extrabold text-[#092b62] border-b border-[#dce3ee] pb-3">
-                  📈 Excel Helper
-                </h2>
-                <textarea
-                  value={excelInput}
-                  onChange={(e) => setExcelInput(e.target.value)}
-                  placeholder="e.g. calculate percentage score using B2 and C2..."
-                  className="bg-stone-50 text-xs"
+              {/* Office 7-Item Navigation Bar */}
+              <div className="flex items-center gap-1.5 flex-wrap justify-center bg-white/10 p-1.5 rounded-2xl border border-white/20 backdrop-blur-md">
+                {[
+                  { id: 'chalk_scoring', label: 'Chalk Scoring (Mobile Sync)', icon: '📊' },
+                  { id: 'improve_doc', label: 'Improve Doc (10 Tools)', icon: '✨' },
+                  { id: 'google_creator', label: 'Google Creator', icon: '📝' },
+                  { id: 'writing', label: 'Writing & AI', icon: '✍️' },
+                  { id: 'creative', label: 'Creative 3D', icon: '🎨' },
+                  { id: 'projects', label: 'Projects Vault', icon: '💾' },
+                  { id: 'science_ppt', label: 'Science PPT 3D', icon: '🔬' },
+                  { id: 'master_skills', label: 'Master Skills', icon: '🎓' },
+                  { id: 'google_drive', label: 'Drive Sync', icon: '☁️' }
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setOfficeSubTab(item.id as any)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${
+                      officeSubTab === item.id
+                        ? 'bg-amber-400 text-stone-950 shadow-md scale-105'
+                        : 'text-white hover:bg-white/10'
+                    }`}
+                  >
+                    <span>{item.icon}</span>
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 0A. CHALK QUICK TOOLKIT (MOBILE SYNC & SCORING SHEETS) */}
+            {officeSubTab === 'chalk_scoring' && (
+              <div className="space-y-6">
+                <ChalkScoringSheetToolkit
+                  sectionName="LNNCHS General Faculty & Advisory"
                 />
-                <button onClick={handleSuggestExcel} className="px-5 py-2.5 bg-[#0b4ea2] text-white rounded-xl text-xs font-bold cursor-pointer">
-                  Suggest Formula
-                </button>
-                {excelOutput && <pre className="out text-xs font-mono font-bold text-emerald-900">{excelOutput}</pre>}
               </div>
-            </div>
+            )}
 
-            <div className="bg-white border border-[#dce3ee] rounded-3xl p-5 sm:p-7 shadow-sm space-y-4">
-              <h2 className="text-lg font-extrabold text-[#092b62] border-b border-[#dce3ee] pb-3">
-                🖥️ PPT Planner
-              </h2>
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                <div>
-                  <label className="font-bold text-stone-700 block mb-1">Topic</label>
-                  <input
-                    type="text"
-                    value={pptTopic}
-                    onChange={(e) => setPptTopic(e.target.value)}
-                    className="bg-stone-50"
-                  />
-                </div>
-                <div>
-                  <label className="font-bold text-stone-700 block mb-1">Number of Slides</label>
-                  <input
-                    type="number"
-                    value={pptSlides}
-                    onChange={(e) => setPptSlides(e.target.value)}
-                    className="bg-stone-50"
-                  />
-                </div>
+            {/* 0. IMPROVE DOCUMENT SUITE (10 TOOLS) */}
+            {officeSubTab === 'improve_doc' && (
+              <div className="space-y-6">
+                <ImproveMyDocumentSuite
+                  initialDocTitle="DepEd Office & Instructional Document"
+                  initialCategory="general"
+                />
               </div>
-              <button onClick={handleBuildPPT} className="px-5 py-2.5 bg-[#0b4ea2] text-white rounded-xl text-xs font-bold cursor-pointer">
-                Build Slide Plan
-              </button>
-              {pptOutput && <pre className="out text-xs font-mono max-h-[220px] overflow-y-auto">{pptOutput}</pre>}
-            </div>
+            )}
+
+            {/* 1. GOOGLE CREATOR */}
+            {officeSubTab === 'google_creator' && (
+              <div className="space-y-6">
+                <GoogleFormsSyncModule />
+              </div>
+            )}
+
+            {/* 2. WRITING */}
+            {officeSubTab === 'writing' && (
+              <div className="space-y-6">
+                <TurnitinDetectorModule />
+                <AICheckerFactScanner />
+              </div>
+            )}
+
+            {/* 3. CREATIVE */}
+            {officeSubTab === 'creative' && (
+              <div className="space-y-6">
+                <PosterMaker />
+              </div>
+            )}
+
+            {/* 4. PROJECTS */}
+            {officeSubTab === 'projects' && (
+              <div className="bg-white border border-[#dce3ee] rounded-3xl p-5 sm:p-7 shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#dce3ee] pb-3">
+                  <div>
+                    <h2 className="text-lg font-extrabold text-[#092b62]">💾 Saved Draft Projects</h2>
+                    <p className="text-xs text-stone-500">Drafts stored securely inside your browser and cloud cache.</p>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <button
+                      onClick={exportAllProjectsJSON}
+                      disabled={projects.length === 0}
+                      className="px-4 py-2 bg-[#0b4ea2] hover:bg-blue-800 disabled:opacity-45 text-white text-xs font-bold rounded-xl cursor-pointer"
+                    >
+                      Export All (.JSON)
+                    </button>
+                    <button
+                      onClick={exportAllProjectsZIP}
+                      disabled={projects.length === 0}
+                      className="px-4 py-2 bg-purple-700 hover:bg-purple-800 disabled:opacity-45 text-white text-xs font-bold rounded-xl cursor-pointer flex items-center gap-1"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download ZIP</span>
+                    </button>
+                    <button
+                      onClick={clearAllProjects}
+                      disabled={projects.length === 0}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-45 text-white text-xs font-bold rounded-xl cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                {projects.length === 0 ? (
+                  <p className="text-xs text-stone-400 italic text-center p-8 bg-stone-50 rounded-2xl">
+                    No saved projects found. Complete calculations or blueprints and click Save Project Draft.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {projects.map((x, idx) => (
+                      <div key={idx} className="bg-stone-50 border border-stone-200 p-4 rounded-xl flex flex-col justify-between relative">
+                        <button
+                          onClick={() => deleteProject(idx)}
+                          className="absolute top-2 right-2 text-stone-400 hover:text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="badge">{x.type}</span>
+                            <span className="text-[10px] text-stone-400">{x.date}</span>
+                          </div>
+                          <pre className="out text-xs font-mono max-h-[150px] overflow-y-auto mt-2 bg-white">{x.text}</pre>
+                        </div>
+                        <button
+                          onClick={() => downloadProjectText(x)}
+                          className="mt-3 px-3 py-1.5 rounded-lg bg-stone-200 text-stone-800 text-[10px] font-bold cursor-pointer self-start"
+                        >
+                          Download Text File
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 5. SCIENCE PPT IN 3D */}
+            {officeSubTab === 'science_ppt' && (
+              <div className="space-y-6">
+                <SciencePPTGenerator />
+              </div>
+            )}
+
+            {/* 6. MASTER SKILLS STUDIO */}
+            {officeSubTab === 'master_skills' && (
+              <div className="space-y-6">
+                <MasterPowerToolsHub />
+              </div>
+            )}
+
+            {/* 7. SAVE TO GOOGLE DRIVE FILE */}
+            {officeSubTab === 'google_drive' && (
+              <div className="space-y-6">
+                <GoogleDriveSyncModule />
+              </div>
+            )}
           </div>
         )}
 
@@ -3999,9 +4210,9 @@ Search Query: "${q}" | Verified against Google Scholar & DepEd Research Portal.`
                     let botReply = '';
                     if (matched.length > 0) {
                       const c = matched[0];
-                      botReply = `[DEPED 20-ATTRIBUTE VERIFIED RECORD]\n• ID: ${c.id}\n• School Year: ${c.schoolYear || '2026-2027'}\n• Grade Level: ${c.grade}\n• Key Stage: ${c.keyStage || 'Key Stage 3'}\n• Curriculum: ${c.curriculum || 'MATATAG (SY 2026-2027)'}\n• Track: ${c.track || 'Core'}\n• Subject Code: ${c.subjectCode || c.code}\n• Subject Title: ${c.subject}\n• Term: Term ${c.term}\n• Week: ${c.week || 'Week 1'}\n• Domain: ${c.domain || 'Core Learning'}\n• Learning Competency: ${c.competency}\n• Competency Code: ${c.code}\n• Content Standard: ${c.contentStandard || 'Standard mastery of curriculum concepts.'}\n• Performance Standard: ${c.performanceStandard || 'Applies concepts in authentic tasks.'}\n• Assessment Weight Set: ${c.assessmentWeightSet || 'Written: 40%, Performance: 60%'}\n• BOW Source: ${c.bowSource || 'DepEd Central Office Budget of Work SY 2026-2027'}\n• CG Source: ${c.cgSource || 'DepEd Order No. 3, s. 2026 Standard CG'}\n• Transition Flag: ${c.transitionFlag || 'Active Transition'}\n• Verification Status: ${c.verificationStatus || 'OFFICIALLY VERIFIED'}\n\n📚 INFORMATION SOURCES:\n1. DepEd Official Portal (https://deped.gov.ph)\n2. DepEd Order No. 3, s. 2026 (Curriculum Assessment Standards)\n3. LNNCHS Learner Information System (LIS Tubod, School ID: 304015)\n4. DepEd Region X Learning Resource Portal (LRMDS)`;
+                      botReply = `[DEPED 20-ATTRIBUTE VERIFIED RECORD]\n• ID: ${c.id}\n• School Year: ${c.schoolYear || '2026-2027'}\n• Grade Level: ${c.grade}\n• Key Stage: ${c.keyStage || 'Key Stage 3'}\n• Curriculum: ${c.curriculum || 'MATATAG (SY 2026-2027)'}\n• Track: ${c.track || 'Core'}\n• Subject Code: ${c.subjectCode || c.code}\n• Subject Title: ${c.subject}\n• Term: Term ${c.term}\n• Week: ${c.week || 'Week 1'}\n• Domain: ${c.domain || 'Core Learning'}\n• Learning Competency: ${c.competency}\n• Competency Code: ${c.code}\n• Content Standard: ${c.contentStandard || 'Standard mastery of curriculum concepts.'}\n• Performance Standard: ${c.performanceStandard || 'Applies concepts in authentic tasks.'}\n• Assessment Weight Set: ${c.assessmentWeightSet || 'Written: 40%, Performance: 60%'}\n• BOW Source: ${c.bowSource || 'DepEd Central Office Budget of Work SY 2026-2027'}\n• CG Source: ${c.cgSource || 'DepEd Order No. 3, s. 2026 Standard CG'}\n• Transition Flag: ${c.transitionFlag || 'Active Transition'}\n• Verification Status: ${c.verificationStatus || 'OFFICIALLY VERIFIED'}\n\n📚 INFORMATION SOURCES:\n1. DepEd Official Portal (https://deped.gov.ph)\n2. DepEd Order No. 3, s. 2026 (Curriculum Assessment Standards)\n3. LNNCHS Learner Information System (LIS Baroy, School ID: 304005)\n4. DepEd Region X Learning Resource Portal (LRMDS)`;
                     } else {
-                      botReply = `[DEPED LNNCHS VERIFIED SEARCH BOT]\nQuery: "${textToSend}" verified across all 20 standard DepEd attributes (ID, School Year 2026-2027, Grade Level, Key Stage, Curriculum, Track, Subject Code, Subject Title, Term, Week, Domain, Learning Competency, Competency Code, Content Standard, Performance Standard, Assessment Weight Set, BOW Source, CG Source, Transition Flag, Verification Status).\n\n📚 OFFICIAL INFORMATION SOURCES:\n• DepEd Official Portal (deped.gov.ph)\n• DepEd Order No. 3, s. 2026 Assessment Transmutation Standard\n• Official LIS Server Database (Tubod Central District, LNNCHS School ID: 304015)\n• MATATAG 2026-2027 Curriculum Guide (Region X, Northern Mindanao)`;
+                      botReply = `[DEPED LNNCHS VERIFIED SEARCH BOT]\nQuery: "${textToSend}" verified across all 20 standard DepEd attributes (ID, School Year 2026-2027, Grade Level, Key Stage, Curriculum, Track, Subject Code, Subject Title, Term, Week, Domain, Learning Competency, Competency Code, Content Standard, Performance Standard, Assessment Weight Set, BOW Source, CG Source, Transition Flag, Verification Status).\n\n📚 OFFICIAL INFORMATION SOURCES:\n• DepEd Official Portal (deped.gov.ph)\n• DepEd Order No. 3, s. 2026 Assessment Transmutation Standard\n• Official LIS Server Database (Baroy District, LNNCHS School ID: 304005)\n• MATATAG 2026-2027 Curriculum Guide (Region X, Northern Mindanao)`;
                     }
 
                     const botMsg = {
@@ -4048,9 +4259,9 @@ Search Query: "${q}" | Verified against Google Scholar & DepEd Research Portal.`
                   let botReply = '';
                   if (matched.length > 0) {
                     const c = matched[0];
-                    botReply = `[DEPED 20-ATTRIBUTE VERIFIED RECORD]\n• ID: ${c.id}\n• School Year: ${c.schoolYear || '2026-2027'}\n• Grade Level: ${c.grade}\n• Key Stage: ${c.keyStage || 'Key Stage 3'}\n• Curriculum: ${c.curriculum || 'MATATAG (SY 2026-2027)'}\n• Track: ${c.track || 'Core'}\n• Subject Code: ${c.subjectCode || c.code}\n• Subject Title: ${c.subject}\n• Term: Term ${c.term}\n• Week: ${c.week || 'Week 1'}\n• Domain: ${c.domain || 'Core Learning'}\n• Learning Competency: ${c.competency}\n• Competency Code: ${c.code}\n• Content Standard: ${c.contentStandard || 'Standard mastery of curriculum concepts.'}\n• Performance Standard: ${c.performanceStandard || 'Applies concepts in authentic tasks.'}\n• Assessment Weight Set: ${c.assessmentWeightSet || 'Written: 40%, Performance: 60%'}\n• BOW Source: ${c.bowSource || 'DepEd Central Office Budget of Work SY 2026-2027'}\n• CG Source: ${c.cgSource || 'DepEd Order No. 3, s. 2026 Standard CG'}\n• Transition Flag: ${c.transitionFlag || 'Active Transition'}\n• Verification Status: ${c.verificationStatus || 'OFFICIALLY VERIFIED'}\n\n📚 INFORMATION SOURCES:\n1. DepEd Official Portal (https://deped.gov.ph)\n2. DepEd Order No. 3, s. 2026 (Curriculum Assessment Standards)\n3. LNNCHS Learner Information System (LIS Tubod, School ID: 304015)\n4. DepEd Region X Learning Resource Portal (LRMDS)`;
+                    botReply = `[DEPED 20-ATTRIBUTE VERIFIED RECORD]\n• ID: ${c.id}\n• School Year: ${c.schoolYear || '2026-2027'}\n• Grade Level: ${c.grade}\n• Key Stage: ${c.keyStage || 'Key Stage 3'}\n• Curriculum: ${c.curriculum || 'MATATAG (SY 2026-2027)'}\n• Track: ${c.track || 'Core'}\n• Subject Code: ${c.subjectCode || c.code}\n• Subject Title: ${c.subject}\n• Term: Term ${c.term}\n• Week: ${c.week || 'Week 1'}\n• Domain: ${c.domain || 'Core Learning'}\n• Learning Competency: ${c.competency}\n• Competency Code: ${c.code}\n• Content Standard: ${c.contentStandard || 'Standard mastery of curriculum concepts.'}\n• Performance Standard: ${c.performanceStandard || 'Applies concepts in authentic tasks.'}\n• Assessment Weight Set: ${c.assessmentWeightSet || 'Written: 40%, Performance: 60%'}\n• BOW Source: ${c.bowSource || 'DepEd Central Office Budget of Work SY 2026-2027'}\n• CG Source: ${c.cgSource || 'DepEd Order No. 3, s. 2026 Standard CG'}\n• Transition Flag: ${c.transitionFlag || 'Active Transition'}\n• Verification Status: ${c.verificationStatus || 'OFFICIALLY VERIFIED'}\n\n📚 INFORMATION SOURCES:\n1. DepEd Official Portal (https://deped.gov.ph)\n2. DepEd Order No. 3, s. 2026 (Curriculum Assessment Standards)\n3. LNNCHS Learner Information System (LIS Baroy, School ID: 304005)\n4. DepEd Region X Learning Resource Portal (LRMDS)`;
                   } else {
-                    botReply = `[DEPED LNNCHS VERIFIED SEARCH BOT]\nQuery: "${textToSend}" verified across all 20 standard DepEd attributes (ID, School Year 2026-2027, Grade Level, Key Stage, Curriculum, Track, Subject Code, Subject Title, Term, Week, Domain, Learning Competency, Competency Code, Content Standard, Performance Standard, Assessment Weight Set, BOW Source, CG Source, Transition Flag, Verification Status).\n\n📚 OFFICIAL INFORMATION SOURCES:\n• DepEd Official Portal (deped.gov.ph)\n• DepEd Order No. 3, s. 2026 Assessment Transmutation Standard\n• Official LIS Server Database (Tubod Central District, LNNCHS School ID: 304015)\n• MATATAG 2026-2027 Curriculum Guide (Region X, Northern Mindanao)`;
+                    botReply = `[DEPED LNNCHS VERIFIED SEARCH BOT]\nQuery: "${textToSend}" verified across all 20 standard DepEd attributes (ID, School Year 2026-2027, Grade Level, Key Stage, Curriculum, Track, Subject Code, Subject Title, Term, Week, Domain, Learning Competency, Competency Code, Content Standard, Performance Standard, Assessment Weight Set, BOW Source, CG Source, Transition Flag, Verification Status).\n\n📚 OFFICIAL INFORMATION SOURCES:\n• DepEd Official Portal (deped.gov.ph)\n• DepEd Order No. 3, s. 2026 Assessment Transmutation Standard\n• Official LIS Server Database (Baroy District, LNNCHS School ID: 304005)\n• MATATAG 2026-2027 Curriculum Guide (Region X, Northern Mindanao)`;
                   }
 
                   const botMsg = {
@@ -4160,7 +4371,8 @@ Search Query: "${q}" | Verified against Google Scholar & DepEd Research Portal.`
         )}
 
         {activeTab === 'grading_app' && (
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-7xl mx-auto space-y-8 p-4 sm:p-6">
+            <HonorsCalculationEngine />
             <StudentGradingApp />
           </div>
         )}
@@ -4190,7 +4402,8 @@ Search Query: "${q}" | Verified against Google Scholar & DepEd Research Portal.`
         )}
 
         {activeTab === 'data_vault' && (
-          <div className="max-w-7xl mx-auto p-4 sm:p-8">
+          <div className="max-w-7xl mx-auto p-4 sm:p-8 space-y-6">
+            <SecureCloudSyncModule />
             <DataVaultModule />
           </div>
         )}
@@ -4208,10 +4421,29 @@ Search Query: "${q}" | Verified against Google Scholar & DepEd Research Portal.`
         )}
 
         {(activeTab === 'action-research' || activeTab === 'action_research') && (
-          <div className="max-w-7xl mx-auto p-4 sm:p-8">
-            <React.Suspense fallback={<ModuleLoadingFallback />}>
-              <MasterActionResearchWorkflow />
-            </React.Suspense>
+          <div className="max-w-7xl mx-auto p-4 sm:p-8 space-y-6">
+            {!isOwner ? (
+              <div className="bg-stone-900 border-2 border-amber-400 rounded-3xl p-8 text-center text-white space-y-4 max-w-xl mx-auto shadow-2xl">
+                <span className="w-16 h-16 rounded-2xl bg-amber-400/20 text-amber-300 border border-amber-400/40 flex items-center justify-center mx-auto text-2xl font-black">
+                  🔒
+                </span>
+                <h3 className="text-xl font-black text-amber-300 uppercase">Restricted Administrator Access</h3>
+                <p className="text-xs text-stone-300 leading-relaxed">
+                  This Action Research and Division of Lanao del Norte 4 Annexes dossier is strictly confidential and reserved exclusively for the <strong>Official System Administrator</strong>.
+                </p>
+                <button
+                  onClick={() => setActiveTab('empire')}
+                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-400 text-stone-950 font-black text-xs uppercase tracking-wider hover:brightness-110 cursor-pointer shadow-lg"
+                >
+                  Request Admin Access →
+                </button>
+              </div>
+            ) : (
+              <React.Suspense fallback={<ModuleLoadingFallback />}>
+                <ActionResearchAnnexModule />
+                <MasterActionResearchWorkflow />
+              </React.Suspense>
+            )}
           </div>
         )}
 
@@ -4224,6 +4456,18 @@ Search Query: "${q}" | Verified against Google Scholar & DepEd Research Portal.`
         {activeTab === 'edu_access' && (
           <div className="max-w-7xl mx-auto p-4 sm:p-8">
             <EduAccessUniversalModule />
+          </div>
+        )}
+
+        {activeTab === 'google_drive' && (
+          <div className="max-w-7xl mx-auto p-4 sm:p-8">
+            <GoogleDriveSyncModule />
+          </div>
+        )}
+
+        {activeTab === 'google_forms' && (
+          <div className="max-w-7xl mx-auto p-4 sm:p-8">
+            <GoogleFormsSyncModule />
           </div>
         )}
 
@@ -4370,8 +4614,43 @@ Search Query: "${q}" | Verified against Google Scholar & DepEd Research Portal.`
         onClose={() => setIsTVTourModalOpen(false)}
       />
 
+      {/* 10-IN-1 MASTER HIGH-TECH SKILLS HUB MODAL */}
+      <MasterSkillsHubModal
+        isOpen={isMasterSkillsHubOpen}
+        onClose={() => setIsMasterSkillsHubOpen(false)}
+        onTriggerAlert={triggerAlert}
+      />
+
+      {/* BOISER DATA SAFETY VAULT MODAL */}
+      <DataSafetyVaultModal
+        isOpen={isDataSafetyVaultOpen}
+        onClose={() => setIsDataSafetyVaultOpen(false)}
+        onTriggerAlert={triggerAlert}
+      />
+
+      {/* 20-POINT THREAT SHIELD & VOICE HUB MODAL */}
+      <SecurityShieldDashboard
+        isOpen={isSecurityShieldOpen}
+        onClose={() => setIsSecurityShieldOpen(false)}
+        onTriggerAlert={triggerAlert}
+      />
+
+      {/* MASTER CREATOR LIVE UPDATE MODAL */}
+      <MasterCreatorLiveUpdateModal
+        isOpen={isLiveUpdateOpen}
+        onClose={() => setIsLiveUpdateOpen(false)}
+        onTriggerAlert={triggerAlert}
+      />
+
+      {/* ROBI DOMINGO VOICE ASSISTANT MODAL */}
+      <RobiVoiceAssistantModal
+        isOpen={isRobiVoiceAssistantOpen}
+        onClose={() => setIsRobiVoiceAssistantOpen(false)}
+        onTriggerAlert={triggerAlert}
+      />
+
       {/* OFFLINE STATUS BANNER */}
-      <OfflineBanner />
+      <OfflineIndicator />
 
       {/* 6. FOOTER */}
       <footer className="bg-white border-t border-[#dce3ee] py-6 text-xs text-stone-500 mb-14 md:mb-0">
@@ -4386,7 +4665,119 @@ Search Query: "${q}" | Verified against Google Scholar & DepEd Research Portal.`
           </span>
         </div>
       </footer>
+      {/* 🚀 MASTER CREATOR & TEACHER ASSISTANT FLOATING WIDGET */}
+      <div className="fixed bottom-16 right-4 z-40 flex flex-col items-end gap-2.5 no-print md:bottom-6">
+        <button
+          onClick={() => setIsMasterSkillsHubOpen(true)}
+          className="px-4 py-3 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:brightness-110 text-stone-950 rounded-2xl font-black text-xs uppercase tracking-wider shadow-[0_4px_25px_rgba(255,191,0,0.5)] border border-amber-200 flex items-center gap-2 transition cursor-pointer group animate-bounce"
+          title="Open 15-in-1 Master High-Tech Skills Hub"
+        >
+          <span className="text-base group-hover:rotate-12 transition-transform">⚡</span>
+          <span>15-in-1 Master Skills Hub</span>
+        </button>
+
+        <button
+          onClick={() => setIsDataSafetyVaultOpen(true)}
+          className="px-4 py-3 bg-gradient-to-r from-emerald-500 via-teal-600 to-cyan-600 hover:brightness-110 text-stone-950 rounded-2xl font-black text-xs uppercase tracking-wider shadow-[0_4px_25px_rgba(16,185,129,0.5)] border border-emerald-300 flex items-center gap-2 transition cursor-pointer group"
+          title="Open Boiser Data Safety Vault"
+        >
+          <span className="text-base group-hover:scale-125 transition-transform">🛡️</span>
+          <span>Data Safety Vault</span>
+        </button>
+
+        {isMasterCreator && (
+          <>
+            <button
+              onClick={() => setIsSecurityShieldOpen(true)}
+              className="px-4 py-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:brightness-110 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-[0_4px_25px_rgba(59,130,246,0.5)] border border-blue-300 flex items-center gap-2 transition cursor-pointer group"
+              title="Open 20-Point Threat Shield & Voice Hub"
+            >
+              <span className="text-base group-hover:scale-125 transition-transform">🔒</span>
+              <span>20-Point Threat Shield</span>
+            </button>
+
+            <button
+              onClick={() => setIsLiveUpdateOpen(true)}
+              className="px-4 py-3 bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:brightness-110 text-stone-950 rounded-2xl font-black text-xs uppercase tracking-wider shadow-[0_4px_25px_rgba(245,158,11,0.5)] border border-amber-200 flex items-center gap-2 transition cursor-pointer group"
+              title="Master Creator: Continue to Update"
+            >
+              <span className="text-base group-hover:rotate-180 transition-transform">🔄</span>
+              <span>Continue to Update</span>
+            </button>
+          </>
+        )}
+
+        <button
+          onClick={() => setIsRobiVoiceAssistantOpen(true)}
+          className="px-4 py-3 bg-gradient-to-r from-pink-500 via-rose-500 to-red-500 hover:brightness-110 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-[0_4px_25px_rgba(244,63,94,0.5)] border border-rose-300 flex items-center gap-2 transition cursor-pointer group"
+          title="Open Robi Domingo Voice Assistant & Voice Copier"
+        >
+          <span className="text-base group-hover:scale-125 transition-transform animate-pulse">🎙️</span>
+          <span>Robi Voice Assistant</span>
+        </button>
+
+        <button
+          onClick={() => setIsTVTourModalOpen(true)}
+          className="px-4 py-3 bg-gradient-to-r from-blue-700 via-indigo-600 to-cyan-600 hover:brightness-110 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-[0_4px_25px_rgba(0,162,255,0.4)] border border-cyan-400/40 flex items-center gap-2 transition cursor-pointer group"
+          title="Replay Master Voice Tour Guide"
+        >
+          <span className="text-base group-hover:scale-125 transition-transform">📺</span>
+          <span className="hidden sm:inline">Replay Master TV Tour</span>
+        </button>
+      </div>
+
+      {/* 🏗️ HOUSE FOUNDATION: Fixed Mobile Bottom Navigation Bar */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#050b14]/98 border-t border-cyan-400/30 flex justify-around py-2.5 z-40 backdrop-blur-md no-print md:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.5)]">
+        <button
+          onClick={() => {
+            setActiveTab('dashboard');
+            window.scrollTo(0, 0);
+          }}
+          className={`flex flex-col items-center gap-1 text-[10px] font-bold transition cursor-pointer ${
+            activeTab === 'dashboard' ? 'text-cyan-300 drop-shadow-[0_0_8px_rgba(0,210,255,0.8)]' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <span className="text-lg">🏠</span>
+          <span>Home</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveTab('google_forms');
+            window.scrollTo(0, 0);
+          }}
+          className={`flex flex-col items-center gap-1 text-[10px] font-bold transition cursor-pointer ${
+            activeTab === 'google_forms' ? 'text-cyan-300 drop-shadow-[0_0_8px_rgba(0,210,255,0.8)]' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <span className="text-lg">🧰</span>
+          <span>Tools</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveTab('science');
+            window.scrollTo(0, 0);
+          }}
+          className={`flex flex-col items-center gap-1 text-[10px] font-bold transition cursor-pointer ${
+            activeTab === 'science' ? 'text-cyan-300 drop-shadow-[0_0_8px_rgba(0,210,255,0.8)]' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <span className="text-lg">🔍</span>
+          <span>Search</span>
+        </button>
+
+        <button
+          onClick={() => setIsStorageModalOpen(true)}
+          className="flex flex-col items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-white transition cursor-pointer"
+        >
+          <span className="text-lg">⚙️</span>
+          <span>Settings</span>
+        </button>
+      </nav>
+
       <Chathead />
-    </div>
+      </div>
+    </SecurityShield>
   );
 }

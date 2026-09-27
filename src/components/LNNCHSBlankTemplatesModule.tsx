@@ -12,10 +12,15 @@ import {
   BookOpen,
   Award,
   Layers,
-  Info
+  Info,
+  Radio,
+  Clock,
+  AlertTriangle
 } from 'lucide-react';
 import { LNNCHSTeacherLoadingSummaryDashboard } from './LNNCHSTeacherLoadingSummaryDashboard';
 import { LnnchsDoorResultPreviewModal } from './LnnchsDoorResultPreviewModal';
+import { DepEdLdnOlsStatusIndicator } from './DepEdLdnOlsStatusIndicator';
+import { DepEdLdnOlsLeaveModal } from './DepEdLdnOlsLeaveModal';
 import { Eye } from 'lucide-react';
 
 interface BlankTemplateConfig {
@@ -45,7 +50,7 @@ export const LNNCHSBlankTemplatesModule: React.FC = () => {
     section: 'STE 7-A (Curie)',
     trackStrand: 'Science, Technology & Engineering (STE)',
     adviser: 'Dr. Sheila Marie C. Datu',
-    principal: 'Anisah A. Sinal (Secondary School Principal IV)',
+    principal: 'ANISAH A. SINAL (Secondary School Principal III)',
     rowCount: 25
   });
 
@@ -61,7 +66,8 @@ export const LNNCHSBlankTemplatesModule: React.FC = () => {
     { id: 'SF9', name: 'School Form 9 (SF9)', title: 'Learner Progress Report Card (Form 138)', desc: 'Official 3-Term quarterly report card with learning areas, attendance, and core values.' },
     { id: 'SF10', name: 'School Form 10 (SF10)', title: 'Learner Permanent Academic Record (Form 137)', desc: 'Complete multi-year permanent transcript of scholastic records and certification.' },
     { id: 'ECR_BLANK', name: 'Blank ECR (Electronic Class Record)', title: 'DepEd 3-Term Electronic Class Record', desc: 'Standard numerical grade sheet with Term 1, Term 2, Term 3 quarterly scores and final rating columns.' },
-    { id: 'TEACHER_LOADING_SUMMARY', name: 'Teacher Class Loading Dashboard', title: 'Summary of Teacher Class Loading (JHS vs SHS, Academic vs TechPro)', desc: 'Official LNNCHS Master Teacher Loading Dashboard with separate views for Junior High School, Senior High School Academic Track, TechPro (TVL) Track, and Teacher Programs.' }
+    { id: 'TEACHER_LOADING_SUMMARY', name: 'Teacher Class Loading Dashboard', title: 'Summary of Teacher Class Loading (JHS vs SHS, Academic vs TechPro)', desc: 'Official LNNCHS Master Teacher Loading Dashboard with separate views for Junior High School, Senior High School Academic Track, TechPro (TVL) Track, and Teacher Programs.' },
+    { id: 'OLS_LEAVE_FORM6', name: 'CS Form 6 (DepEd LDN OLS Bridge)', title: 'Civil Service Form No. 6 & SHS Absence Signal (5:00 PM – 7:00 PM)', desc: 'Official Application for Leave template integrated with https://ols.depedldn.com/ featuring 1-hour warning signal and absence auto-filing for SHS faculty.' }
   ];
 
   const handlePrint = () => {
@@ -297,6 +303,37 @@ export const LNNCHSBlankTemplatesModule: React.FC = () => {
           </div>
 
           {/* ================= BLANK TABLES BASED ON SELECTED FORM ================= */}
+          {selectedForm === 'OLS_LEAVE_FORM6' && (
+            <div className="py-2 space-y-6">
+              <div className="bg-red-50 border-2 border-red-300 rounded-2xl p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Radio className="w-5 h-5 text-red-600 animate-pulse" />
+                    <h3 className="text-sm font-black text-red-950 uppercase">
+                      Civil Service Form No. 6 • DepEd LDN OLS Portal Integration
+                    </h3>
+                  </div>
+                  <span className="px-3 py-1 rounded-full bg-amber-400 text-stone-950 text-xs font-black">
+                    SHS &amp; Non-Teaching Staff Only
+                  </span>
+                </div>
+                <p className="text-xs text-stone-700 leading-relaxed">
+                  Official leave application portal for DepEd Lanao del Norte is located at{' '}
+                  <a href="https://ols.depedldn.com/" target="_blank" rel="noreferrer" className="text-blue-700 underline font-black">
+                    https://ols.depedldn.com/
+                  </a>. Operating hours are strictly <b>5:00 PM to 7:00 PM</b> with an automated <b>1-hour warning signal at 4:00 PM</b>.
+                </p>
+              </div>
+
+              <DepEdLdnOlsStatusIndicator
+                teacherName={config.adviser}
+                isShsTeacher={true}
+                position={`SHS Teacher • ${config.trackStrand}`}
+                advisoryClass={`${config.gradeLevel} - ${config.section}`}
+              />
+            </div>
+          )}
+
           {selectedForm === 'TEACHER_LOADING_SUMMARY' && (
             <div className="py-2">
               <LNNCHSTeacherLoadingSummaryDashboard />

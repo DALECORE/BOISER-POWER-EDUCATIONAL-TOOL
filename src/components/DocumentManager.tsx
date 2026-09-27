@@ -11,9 +11,12 @@ import {
   FileSpreadsheet,
   BookOpen,
   Presentation,
-  Eye
+  Eye,
+  Sparkles,
+  X
 } from 'lucide-react';
 import { LnnchsDoorResultPreviewModal, PreviewItemData } from './LnnchsDoorResultPreviewModal';
+import { ImproveMyDocumentSuite } from './ImproveMyDocumentSuite';
 
 interface DocumentManagerProps {
   sectionName: string;
@@ -22,6 +25,8 @@ interface DocumentManagerProps {
 export const DocumentManager: React.FC<DocumentManagerProps> = ({ sectionName }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [previewDocData, setPreviewDocData] = useState<PreviewItemData | null>(null);
+  const [isImproveSuiteOpen, setIsImproveSuiteOpen] = useState(false);
+  const [activeDocForImprovement, setActiveDocForImprovement] = useState<string>('Lesson Plan & DLL');
 
   const handleSyncDrive = () => {
     setIsSyncing(true);
@@ -55,16 +60,28 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({ sectionName })
             <span>Document Manager: {sectionName}</span>
           </h3>
           <p className="text-xs text-stone-400 mt-1">
-            Secure offline document repository with automatic Google Drive sync for LIS & RUTE exams.
+            Secure offline document repository with automatic Google Drive sync and AI Multi-Dimensional Audit.
           </p>
         </div>
-        <button 
-          onClick={handleSyncDrive}
-          className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition ${isSyncing ? 'bg-amber-600' : 'bg-blue-700 hover:bg-blue-800'}`}
-        >
-          <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-          {isSyncing ? 'Syncing...' : 'Sync with DepEd Drive'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setActiveDocForImprovement(`Document Suite — ${sectionName}`);
+              setIsImproveSuiteOpen(true);
+            }}
+            className="px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 flex items-center gap-1.5 shadow-md transition cursor-pointer active:scale-95"
+          >
+            <Sparkles className="w-4 h-4 text-slate-950 animate-pulse" />
+            <span>Improve My Document</span>
+          </button>
+          <button 
+            onClick={handleSyncDrive}
+            className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition ${isSyncing ? 'bg-amber-600' : 'bg-blue-700 hover:bg-blue-800'}`}
+          >
+            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+            {isSyncing ? 'Syncing...' : 'Sync with DepEd Drive'}
+          </button>
+        </div>
       </div>
 
       <div className="bg-blue-50 p-6 rounded-3xl border border-blue-200">
@@ -102,7 +119,16 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({ sectionName })
                   <span>Preview &amp; Download</span>
                 </button>
                 <div className="flex gap-1.5">
-                  <button className="flex-1 py-1 bg-stone-100 hover:bg-stone-200 rounded-md text-[9px] font-bold text-stone-700">Upload</button>
+                  <button 
+                    onClick={() => {
+                      setActiveDocForImprovement(`${cat.name} — ${sectionName}`);
+                      setIsImproveSuiteOpen(true);
+                    }}
+                    className="flex-1 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-md text-[9px] font-bold flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <Sparkles className="w-2.5 h-2.5 text-amber-600" />
+                    <span>Improve</span>
+                  </button>
                   <button 
                     onClick={() => setPreviewDocData({
                       title: `${cat.name} — ${sectionName}`,
@@ -111,7 +137,7 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({ sectionName })
                       description: cat.desc,
                       sectionName: sectionName
                     })}
-                    className="flex-1 py-1 bg-blue-50 hover:bg-blue-100 text-blue-900 rounded-md text-[9px] font-bold"
+                    className="flex-1 py-1 bg-blue-50 hover:bg-blue-100 text-blue-900 rounded-md text-[9px] font-bold cursor-pointer"
                   >
                     Export
                   </button>
@@ -142,6 +168,18 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({ sectionName })
           isOpen={true}
           onClose={() => setPreviewDocData(null)}
         />
+      )}
+
+      {/* Improve My Document Full Suite Modal */}
+      {isImproveSuiteOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md p-2 sm:p-6 overflow-y-auto flex items-center justify-center animate-in fade-in duration-200">
+          <div className="w-full max-w-7xl relative">
+            <ImproveMyDocumentSuite
+              initialDocTitle={activeDocForImprovement}
+              onClose={() => setIsImproveSuiteOpen(false)}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

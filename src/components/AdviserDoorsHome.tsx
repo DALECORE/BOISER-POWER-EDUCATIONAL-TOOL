@@ -38,14 +38,23 @@ import {
   FileCheck,
   ListChecks,
   Zap,
-  QrCode
+  QrCode,
+  Tv,
+  Grid,
+  Edit3,
+  Save,
+  X,
+  KeyRound
 } from 'lucide-react';
+import { logSecurityBreach } from '../services/securityAlertService';
+import { GradeTallyInputForm } from './GradeTallyInputForm';
 import { LNNCHS_20_SECTIONS_PER_GRADE, ALL_LNNCHS_SECTIONS, CONSOLIDATED_LIS_STUDENTS, SectionDefinition } from '../data/lnnchsCompleteSectionsDirectory';
 import { DocumentManager } from './DocumentManager';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, isAuthorizedForLIS } from '../context/AuthContext';
 import { SingleSFInspector } from './SingleSFInspector';
 import { BoiserChatbot } from './BoiserChatbot';
 import { DoorFileSummary } from './DoorFileSummary';
+import { LISActivityMonitor } from './LISActivityMonitor';
 import { DoorCameraScanner } from './DoorCameraScanner';
 import { ILAWGenerator } from './ILAWGenerator';
 import { SummativeHub } from './SummativeHub';
@@ -53,9 +62,20 @@ import { DoorChathead } from './DoorChathead';
 import { BOWGeneratorTool } from './BOWGeneratorTool';
 import { StudentDocumentVault } from './StudentDocumentVault';
 import { PrincipalDoorsView } from './PrincipalDoorsView';
-import { CebuanoVoiceGuide } from './CebuanoVoiceGuide';
 import { speakWithCebuanoMaleVoice } from '../services/boiserVoiceService';
 import { LnnchsDoorResultPreviewModal, PreviewItemData } from './LnnchsDoorResultPreviewModal';
+import { DepEdLdnOlsStatusIndicator } from './DepEdLdnOlsStatusIndicator';
+import { DepEdLdnOlsLeaveModal } from './DepEdLdnOlsLeaveModal';
+
+import { DoorDemoGuide } from './DoorDemoGuide';
+import { LISConnectivityManager } from './LISConnectivityManager';
+
+import { SeatingChartManager } from './SeatingChartManager';
+import { QRScannerModule } from './QRScannerModule';
+import { MysteriousDoorsWorkspace } from './MysteriousDoorsWorkspace';
+import { MasterTeacherDoorsView } from './MasterTeacherDoorsView';
+import { SubjectTeachersDoorsView } from './SubjectTeachersDoorsView';
+import { MasterCreatorSkillsVault } from './MasterCreatorSkillsVault';
 
 interface AdviserDoorsHomeProps {
   currentUser: {
@@ -70,14 +90,24 @@ interface AdviserDoorsHomeProps {
 
 export const AdviserDoorsHome: React.FC<AdviserDoorsHomeProps> = ({ currentUser, schoolYear = '2026-2027', setSchoolYear }) => {
   const { isOwner, substitutionPlans, notifications, markNotificationRead } = useAuth();
-  const isMasterCreator = isOwner || currentUser.email === 'boisersteavenkinth@gmail.com';
+  const isMasterCreator = isOwner || currentUser.email === 'boisersteavenkinth@gmail.com' || currentUser.email === 'boisersteavenkinth@deped.gov.ph' || currentUser.email === 'steavenkinth.boiser@deped.gov.ph';
+  const isOfficialAuthorized = isAuthorizedForLIS(currentUser.email) || currentUser.email === 'fiel.official@deped.gov.ph' || currentUser.email === 'edalyn.olis@deped.gov.ph';
+  const isAdviserOfThisSection = (sectionId: string) => {
+    // Basic check: if it's the master creator, they can see everything.
+    if (isMasterCreator || isOfficialAuthorized) return true;
+    
+    // Check if current user email matches the section's adviser email (if we had it)
+    // For now, we allow the adviser if their name matches (fragile) or if they are logged in as 'adviser'
+    return currentUser.role === 'adviser';
+  };
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [activeAdminDoorId, setActiveAdminDoorId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'sf_records' | 'summative' | 'activity_log' | 'document_manager' | 'substitution' | 'file_summary' | 'camera_hub' | 'weekly_dll' | 'summative_hub' | 'bow_generator' | 'summative_item_analysis' | 'student_vault'>('sf_records');
+  const [activeTab, setActiveTab] = useState<'sf_records' | 'summative' | 'activity_log' | 'document_manager' | 'substitution' | 'file_summary' | 'camera_hub' | 'weekly_dll' | 'summative_hub' | 'bow_generator' | 'summative_item_analysis' | 'student_vault' | 'grading_summary' | 'seating_chart' | 'qr_attendance'>('sf_records');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [scannerMode, setScannerMode] = useState<'activity' | 'exam' | 'qr' | 'rute' | 'ddt'>('activity');
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showChathead, setShowChathead] = useState(false);
+  const [showDemo, setShowDemo] = useState(false);
   const [previewDoorData, setPreviewDoorData] = useState<{ doorName: string; doorRole: string; gradeLevel?: string; sectionName?: string; itemData?: PreviewItemData } | null>(null);
 
   // Door-to-Door Tutorial Modal State
@@ -113,14 +143,16 @@ export const AdviserDoorsHome: React.FC<AdviserDoorsHomeProps> = ({ currentUser,
     return ALL_LNNCHS_SECTIONS;
   };
 
-  const sections = getSections();
-  const safeSections = Array.isArray(sections) ? sections : ALL_LNNCHS_SECTIONS;
+  const [sectionsList, setSectionsList] = useState<SectionDefinition[]>(() => {
+    return getSections();
+  });
+
+  const safeSections = Array.isArray(sectionsList) ? sectionsList : ALL_LNNCHS_SECTIONS;
 
   // Filter sections visible to user
   const visibleSections = safeSections.filter(sec => {
     // Open ALL doors if master creator OR any authenticated DepEd user
     if (isMasterCreator || currentUser.role === 'adviser' || currentUser.role === 'non_adviser') return true;
-    
     return false;
   });
 
@@ -131,13 +163,179 @@ export const AdviserDoorsHome: React.FC<AdviserDoorsHomeProps> = ({ currentUser,
     setTimeout(() => setStatusMsg(null), 4000);
   };
 
-  const canAccessSection = (sec: SectionDefinition) => {
+  // Check if current user is the verified adviser of this section
+  const isAdviserOfSection = (sec: SectionDefinition) => {
     if (isMasterCreator) return true;
-    const advName = (sec.adviserName || '').toLowerCase();
-    const advEmail = (sec.adviserEmail || '').toLowerCase();
-    const curName = (currentUser.name || '').toLowerCase();
-    const curEmail = (currentUser.email || '').toLowerCase();
-    return (advName && curName && advName === curName) || (advEmail && curEmail && advEmail === curEmail);
+    const advName = (sec.adviserName || '').toLowerCase().trim();
+    const curName = (currentUser.name || '').toLowerCase().trim();
+    const advEmail = (sec.adviserEmail || '').toLowerCase().trim();
+    const curEmail = (currentUser.email || '').toLowerCase().trim();
+    return (
+      (advName && curName && (curName.includes(advName) || advName.includes(curName))) || 
+      (advEmail && curEmail && advEmail === curEmail) || 
+      currentUser.role === 'adviser'
+    );
+  };
+
+  const canAccessSection = (sec: SectionDefinition) => {
+    return isAdviserOfSection(sec);
+  };
+
+  // ==================== DOOR & ADVISER NAME EDITING ENGINE ====================
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
+  const [editSectionName, setEditSectionName] = useState<string>('');
+  const [editAdviserName, setEditAdviserName] = useState<string>('');
+
+  const handleStartEdit = (sec: SectionDefinition) => {
+    const secId = sec.sectionId || sec.id;
+    if (!isMasterCreator && !isAdviserOfSection(sec)) {
+      alert(`🔒 ACCESS DENIED: Only the assigned Resident Adviser (${sec.adviserName}) or the Security Management Center (Sir Steaven Kinth D. Boiser) is authorized to edit this door and adviser name.`);
+      return;
+    }
+    if (sec.isLocked && !isMasterCreator) {
+      alert(`🔒 DOOR & NAMES LOCKED: This door has been locked by the Adviser (${sec.adviserName}). Unlock the door first to edit.`);
+      return;
+    }
+    setEditingSectionId(secId);
+    setEditSectionName(sec.sectionName);
+    setEditAdviserName(sec.adviserName);
+  };
+
+  const handleSaveEdit = (secId: string) => {
+    const target = sectionsList.find(s => (s.sectionId || s.id) === secId);
+    if (!target) return;
+    if (!isMasterCreator && !isAdviserOfSection(target)) {
+      alert('🔒 Access Denied: Unauthorized editor.');
+      return;
+    }
+    const newSecName = editSectionName.trim() || target.sectionName;
+    const newAdvName = editAdviserName.trim() || target.adviserName;
+
+    const updated = sectionsList.map(s => {
+      if ((s.sectionId || s.id) === secId) {
+        return {
+          ...s,
+          sectionName: newSecName,
+          adviserName: newAdvName
+        };
+      }
+      return s;
+    });
+    setSectionsList(updated);
+    localStorage.setItem('lnnchs_managed_sections', JSON.stringify(updated));
+    setEditingSectionId(null);
+    showNotification('success', `✅ Door updated: "${newSecName}" (Adviser: ${newAdvName})`);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingSectionId(null);
+  };
+
+  // ==================== DOOR LOCK & INTRUDER SHIELD ENGINE ====================
+  const [lockingSection, setLockingSection] = useState<SectionDefinition | null>(null);
+  const [lockPinInput, setLockPinInput] = useState<string>('1234');
+
+  // Security Gate / Unlock modal for intruders trying to enter a locked door
+  const [gateLockedSection, setGateLockedSection] = useState<SectionDefinition | null>(null);
+  const [gatePinInput, setGatePinInput] = useState<string>('');
+  const [gateError, setGateError] = useState<string | null>(null);
+
+  const handleToggleLock = (sec: SectionDefinition) => {
+    const secId = sec.sectionId || sec.id;
+    if (!isMasterCreator && !isAdviserOfSection(sec)) {
+      alert(`🔒 PERMISSION DENIED: Only the assigned Resident Adviser (${sec.adviserName}) or the Security Management Center (Sir Steaven Kinth D. Boiser) can lock or unlock this door.`);
+      return;
+    }
+
+    if (sec.isLocked) {
+      if (confirm(`Unlock door "${sec.sectionName}" and re-enable name editing?`)) {
+        const updated = sectionsList.map(s => {
+          if ((s.sectionId || s.id) === secId) {
+            return {
+              ...s,
+              isLocked: false,
+              lockedBy: undefined
+            };
+          }
+          return s;
+        });
+        setSectionsList(updated);
+        localStorage.setItem('lnnchs_managed_sections', JSON.stringify(updated));
+        showNotification('success', `🔓 Door & names UNLOCKED for ${sec.sectionName}.`);
+      }
+    } else {
+      setLockingSection(sec);
+      setLockPinInput('1234');
+    }
+  };
+
+  const handleConfirmLock = () => {
+    if (!lockingSection) return;
+    const secId = lockingSection.sectionId || lockingSection.id;
+    const pin = lockPinInput.trim() || '1234';
+    const updated = sectionsList.map(s => {
+      if ((s.sectionId || s.id) === secId) {
+        return {
+          ...s,
+          isLocked: true,
+          lockPin: pin,
+          lockedBy: isMasterCreator ? 'Security Management Center (Steaven Kinth D. Boiser)' : lockingSection.adviserName
+        };
+      }
+      return s;
+    });
+    setSectionsList(updated);
+    localStorage.setItem('lnnchs_managed_sections', JSON.stringify(updated));
+    showNotification('success', `🔒 LOCKED: Door "${lockingSection.sectionName}" and Adviser "${lockingSection.adviserName}" are now LOCKED against intruder edits and entry!`);
+    setLockingSection(null);
+  };
+
+  // ==================== DOOR ENTRY INTERCEPTION ENGINE ====================
+  const handleOpenDoor = (sec: SectionDefinition) => {
+    const secId = sec.sectionId || sec.id;
+    // IF NOT LOCKED -> open directly
+    if (!sec.isLocked) {
+      setSelectedSectionId(secId);
+      return;
+    }
+
+    // IF LOCKED:
+    // 1. MASTER OVERRIDE: Security Management Center (Sir Steaven Kinth D. Boiser)
+    if (isMasterCreator) {
+      showNotification('success', `🛡️ SECURITY MANAGEMENT CENTER (STEAVEN KINTH D. BOISER) MASTER OVERRIDE: Access granted to locked door "${sec.sectionName}".`);
+      setSelectedSectionId(secId);
+      return;
+    }
+
+    // 2. Verified Adviser of this section
+    if (isAdviserOfSection(sec)) {
+      setSelectedSectionId(secId);
+      return;
+    }
+
+    // 3. Intruders / standard users are intercepted by Security Gate!
+    setGateLockedSection(sec);
+    setGatePinInput('');
+    setGateError(null);
+  };
+
+  const handleVerifyGatePin = () => {
+    if (!gateLockedSection) return;
+    const requiredPin = gateLockedSection.lockPin || '1234';
+    if (gatePinInput === requiredPin) {
+      showNotification('success', `🔓 Passcode Accepted: Entering ${gateLockedSection.sectionName} Door.`);
+      setSelectedSectionId(gateLockedSection.sectionId || gateLockedSection.id);
+      setGateLockedSection(null);
+    } else {
+      setGateError('❌ INCORRECT SECURITY PIN: Intruder access blocked! Activity logged.');
+      logSecurityBreach(
+        currentUser.name || 'Intruder',
+        currentUser.email || 'guest@intruder.node',
+        `Attempted unauthorized entry into locked door "${gateLockedSection.sectionName}" (Adviser: ${gateLockedSection.adviserName})`,
+        'MASTER_DOOR_BREACH',
+        `Entered PIN: ${gatePinInput}`
+      );
+    }
   };
 
   const speakTutorial = (text: string, _lang: 'en' | 'tl' | 'ceb') => {
@@ -163,7 +361,7 @@ export const AdviserDoorsHome: React.FC<AdviserDoorsHomeProps> = ({ currentUser,
         title: `Gabay sa Pintuan para sa ${sec.sectionName}`,
         intro: `Maligayang pagdating sa pinto ng seksyon ni Adviser ${sec.adviserName}. Ang pinto na ito ay nagbibigay ng eksklusibong pribilehiyo sa SF1 hanggang SF10 reports at LIS records.`,
         steps: [
-          'Hakbang 1: I-verify ang iyong DepEd email at tiyaking ikaw ang nakatalagang tagapayo (adviser) o Master Creator.',
+          'Hakbang 1: I-verify ang iyong DepEd email at tiyaking ikaw ang nakatalagang tagapayo (adviser) o System Administrator.',
           'Hakbang 2: I-click ang "Open Door" upang makapasok sa pribadong silid ng iyong seksyon.',
           'Hakbang 3: Piliin ang SF1–SF10 tab upang i-download o tingnan ang mga opisyal na ulat.',
           'Hakbang 4: Kung nagkamali ka ng pindot o napunta sa ibang pinto, sundin ang Smart Suggestion Arrow pabalik sa iyong nakatalagang pinto.'
@@ -174,7 +372,7 @@ export const AdviserDoorsHome: React.FC<AdviserDoorsHomeProps> = ({ currentUser,
         title: `Giya sa Pultahan para sa ${sec.sectionName}`,
         intro: `Maayong pagabot sa pultahan sa seksyon ni Adviser ${sec.adviserName}. Kini nga pultahan naghatag og eksklusibong katungod sa SF1 hangtod SF10 reports ug LIS records.`,
         steps: [
-          'Lakang 1: I-verify ang imong DepEd email ug siguruha nga ikaw ang opisyal nga adviser o Master Creator.',
+          'Lakang 1: I-verify ang imong DepEd email ug siguruha nga ikaw ang opisyal nga adviser o System Administrator.',
           'Lakang 2: I-click ang "Open Door" aron makasulod sa pribadong lawak sa imong seksyon.',
           'Lakang 3: Pilia ang SF1–SF10 tab aron tan-awon o i-download ang mga opisyal nga rekord.',
           'Lakang 4: Kung nasayop ka og pili sa pultahan, sunda ang Smart Suggestion Arrow padulong sa sakto mong pultahan.'
@@ -185,7 +383,7 @@ export const AdviserDoorsHome: React.FC<AdviserDoorsHomeProps> = ({ currentUser,
         title: `Door-to-Door Guidance Handbook for ${sec.sectionName}`,
         intro: `Welcome to the adviser residence door of ${sec.adviserName}. This private door unlocks exclusive access to official SF1–SF10 school reports and LIS records.`,
         steps: [
-          'Step 1: Verify your DepEd credentials and ensure you are the assigned adviser or Master Creator.',
+          'Step 1: Verify your DepEd credentials and ensure you are the assigned adviser or System Administrator.',
           'Step 2: Click "Open Door" to enter your secure section room.',
           'Step 3: Navigate the SF1–SF10 tab to view or export confidential DepEd student documents.',
           'Step 4: If you mistakenly opened the wrong door, follow the Smart Suggestion Arrow to navigate directly to your assigned section.'
@@ -196,6 +394,7 @@ export const AdviserDoorsHome: React.FC<AdviserDoorsHomeProps> = ({ currentUser,
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
+      <LISConnectivityManager />
       {/* ALARM SIGNAL FOR CHOSEN TEACHERS */}
       {unreadAlarms.length > 0 && (
         <div className="bg-red-600 text-white p-4 rounded-2xl shadow-2xl border-4 border-red-400 animate-bounce flex items-center justify-between gap-4">
@@ -223,7 +422,7 @@ export const AdviserDoorsHome: React.FC<AdviserDoorsHomeProps> = ({ currentUser,
           <div className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-200 text-xs font-black tracking-wide">
               <Home className="w-4 h-4 text-amber-300" />
-              <span>LNNCHS ADVISER HOUSE &amp; DOOR-TO-DOOR TUTORIAL PORTAL</span>
+              <span>WELCOME AND ENJOY LEARNING WITH BOISER EDUCATIONAL RESOURCES</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-white">
               🏡 Faculty Residence Doors &amp; Multi-Lingual Guidance
@@ -511,490 +710,108 @@ export const AdviserDoorsHome: React.FC<AdviserDoorsHomeProps> = ({ currentUser,
 
               <SingleSFInspector />
             </div>
+
+            {/* LIS & SF1 Activity Monitoring Node */}
+            <div className="bg-slate-50 border border-slate-200 rounded-3xl p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">Authorized LIS/SF1 Activity Logs</h3>
+                {isMasterCreator && (
+                  <button 
+                    onClick={() => {
+                      if(window.confirm('STRICT WARNING: This will clear all temporary data (excluding SF1/LIS master records). Proceed with System Purge?')) {
+                        localStorage.removeItem('lnnchs_managed_sections');
+                        localStorage.removeItem('substitution_plans');
+                        showNotification('success', 'System Purge Successful: Unexpected data cleared.');
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase hover:bg-red-700 shadow-sm"
+                  >
+                    System Purge
+                  </button>
+                )}
+              </div>
+              <LISActivityMonitor role={currentUser.email.includes('edalyn') ? 'JHS' : 'SHS'} />
+            </div>
           </div>
         </div>
-      ) : activeSection ? (
-        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border-2 border-amber-400/50 space-y-6 animate-in zoom-in-95 duration-200">
-          {/* House Roof & Header */}
-          <div className="bg-gradient-to-r from-amber-700 via-amber-800 to-stone-900 -mx-6 sm:-mx-8 -mt-6 sm:-mt-8 p-6 text-white rounded-t-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b-4 border-[#FCD116]">
+      ) : activeAdminDoorId === 'admin-master-teachers' ? (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          <MasterTeacherDoorsView onClose={() => setActiveAdminDoorId(null)} />
+        </div>
+      ) : activeAdminDoorId === 'admin-master-creator' ? (
+        <div className="space-y-6 animate-in zoom-in-95 duration-200">
+          <div className="bg-gradient-to-r from-red-950 via-stone-900 to-black p-6 rounded-t-3xl border-b-4 border-amber-400 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 -mx-1 sm:mx-0">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-amber-500/30 border-2 border-amber-300 flex items-center justify-center text-amber-200 shadow-inner shrink-0">
-                <DoorOpen className="w-8 h-8 text-amber-200" />
+              <div className="w-14 h-14 rounded-2xl bg-amber-400 text-stone-950 flex items-center justify-center text-2xl font-black shrink-0 shadow-lg shadow-amber-500/10">
+                👑
               </div>
               <div>
-                <div className="text-[10px] uppercase font-black tracking-widest text-amber-300">
-                  🏠 Adviser Residence Door • Grade {activeSection.gradeLevel}
-                </div>
+                <span className="text-[10px] uppercase font-black tracking-widest text-amber-400">
+                  🛡️ Secure Command Office
+                </span>
                 <h2 className="text-xl sm:text-2xl font-black text-white">
-                  {activeSection.sectionName}
+                  Master Creator Command Center
                 </h2>
-                <p className="text-xs text-amber-100 font-medium">
-                  Adviser: <strong className="text-amber-200">{activeSection.adviserName}</strong> | Room: {activeSection.roomAssignment || 'Main Building'}
+                <p className="text-xs text-stone-300 font-medium">
+                  Welcome back, Sir Steaven Kinth D. Boiser. Global app configuration, security analytics, and Master Skills execution.
                 </p>
               </div>
             </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => setPreviewDoorData({
-                  doorName: activeSection.adviserName,
-                  doorRole: `Resident Adviser • Grade ${activeSection.gradeLevel} ${activeSection.sectionName}`,
-                  gradeLevel: `Grade ${activeSection.gradeLevel}`,
-                  sectionName: activeSection.sectionName
-                })}
-                className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:brightness-110 text-white font-black rounded-2xl text-xs flex items-center gap-1.5 transition cursor-pointer shadow border border-cyan-300"
-              >
-                <Eye className="w-4 h-4 text-amber-300" />
-                <span>👁️ Preview &amp; Download Results</span>
-              </button>
-
-              <button
-                onClick={() => {
-                   showNotification('success', `Assign Subject BOW for ${activeSection.sectionName} downloaded!`);
-                }}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-2xl text-xs flex items-center gap-1.5 transition cursor-pointer shadow"
-              >
-                <Download className="w-4 h-4" />
-                <span>Download assigned BOW</span>
-              </button>
-              <button
-                onClick={() => setShowChathead(!showChathead)}
-                className={`px-4 py-2 rounded-2xl text-xs font-black flex items-center gap-1.5 transition cursor-pointer shadow ${showChathead ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-emerald-500 text-white hover:bg-emerald-600'}`}
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span>{showChathead ? 'Disable Chat' : 'Enable Chat'}</span>
-              </button>
-              <button
-                onClick={() => setTutorialSection(activeSection)}
-                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-stone-950 font-black rounded-2xl text-xs flex items-center gap-1.5 transition cursor-pointer shadow"
-              >
-                <HelpCircle className="w-4 h-4 text-stone-950" />
-                <span>Door Guide &amp; Audio</span>
-              </button>
-              <button
-                onClick={() => setSelectedSectionId(null)}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/30 rounded-2xl text-xs font-black text-white flex items-center gap-2 transition cursor-pointer"
-              >
-                <span>🚪 Close Door</span>
-              </button>
-            </div>
+            <button 
+              onClick={() => setActiveAdminDoorId(null)} 
+              className="px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl text-xs font-black text-white transition cursor-pointer"
+            >
+              🚪 Exit Command Center
+            </button>
           </div>
-
-          {/* Sub-Navigation inside the house */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-stone-200">
-            {[
-              { id: 'sf_records', label: '📋 Official SF1–SF10 Reports', icon: FileSpreadsheet },
-              { id: 'student_vault', label: '🗂️ Student Document Vault', icon: FolderOpen },
-              { id: 'bow_generator', label: '📚 Budget of Work (BOW)', icon: BookOpen },
-              { id: 'summative_item_analysis', label: '📊 Summative Test & Item Analysis', icon: BarChart3 },
-              { id: 'file_summary', label: '📂 Door File Summary', icon: FolderOpen },
-              { id: 'camera_hub', label: '📸 Smart Scanner Hub', icon: Camera },
-              { id: 'weekly_dll', label: '📝 Weekly DLL/ILAW', icon: Sparkles },
-              { id: 'summative_hub', label: '🏆 Summative Tests', icon: Award },
-              { id: 'summative', label: '📈 LIS Student Records', icon: UserCheck },
-              { id: 'substitution', label: '🛡️ My Substitution Plans', icon: AlarmClock },
-              { id: 'activity_log', label: '🔒 Secure Activity Log', icon: Activity }
-            ].map(tab => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`px-4 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
-                    isActive
-                      ? 'bg-[#092B62] text-white shadow-sm'
-                      : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
-                  }`}
-                >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-amber-300' : 'text-stone-500'}`} />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Tab Content: Student Document Vault */}
-          {activeTab === 'student_vault' && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              <StudentDocumentVault sectionName={activeSection.sectionName} gradeLevel={activeSection.gradeLevel} teacherName={activeSection.adviserName} />
-            </div>
-          )}
-
-          {/* Tab Content: BOW Generator */}
-          {activeTab === 'bow_generator' && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              <BOWGeneratorTool />
-            </div>
-          )}
-
-          {/* Tab Content: Summative & Item Analysis */}
-          {activeTab === 'summative_item_analysis' && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              <div className="bg-gradient-to-r from-blue-900 to-indigo-900 p-6 rounded-3xl text-white shadow-md flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-black flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5 text-amber-300" />
-                    <span>Summative Test Results, RUTE Periodicals &amp; Item Analysis Hub</span>
-                  </h3>
-                  <p className="text-xs text-blue-100 mt-1">
-                    Upload student test results, compute item difficulty indices, generate Table of Specifications (TOS), and run exact fact-check calculation tables for Math &amp; Physics exams.
-                  </p>
-                </div>
-                <span className="px-3 py-1 bg-amber-400 text-stone-950 font-black rounded-full text-xs">
-                  DepEd Regional Exam Compliant
-                </span>
-              </div>
-              <SummativeHub sectionName={activeSection.sectionName} gradeLevel={activeSection.gradeLevel} />
-            </div>
-          )}
-
-          {/* Tab Content 1: SF1 - SF10 Reports */}
-          {activeTab === 'sf_records' && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              <div className="flex items-center justify-between bg-blue-50/60 p-4 rounded-2xl border border-blue-200">
-                <div>
-                  <h3 className="text-sm font-black text-[#092B62]">
-                    Official School Forms (SF1 to SF10) — {activeSection.sectionName}
-                  </h3>
-                  <p className="text-xs text-stone-600">
-                    Strictly confidential LIS records accessible only by {activeSection.adviserName} and Master Creator Steaven Kinth D. Boiser.
-                  </p>
-                </div>
-                <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-400/30 text-emerald-700 text-xs font-black flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" /> Securely Verified
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[
-                  { code: 'SF1', name: 'School Register (Masterlist)', desc: 'Complete student demographics, birthdates, LRN, and parents.' },
-                  { code: 'SF2', name: 'Daily Attendance Report', desc: 'Monthly attendance tracking and absentism monitoring.' },
-                  { code: 'SF3', name: 'Books Issued & Returned', desc: 'Textbook accountability per learner.' },
-                  { code: 'SF4', name: 'Monthly Summary of Attendance', desc: 'Enrolment fluctuation and dropout tracking report.' },
-                  { code: 'SF5', name: 'Report on Promotion & Level', desc: 'Summary of promoted, retained, and conditional learners.' },
-                  { code: 'SF9', name: 'Learner Progress Report Card', desc: 'Trimester grading summaries and transmutation matrices.' },
-                  { code: 'SF10', name: 'Permanent Academic Record', desc: 'Form 137 complete educational transcripts across grade levels.' }
-                ].map(form => (
-                  <div key={form.code} className="bg-stone-50 rounded-2xl p-5 border border-stone-200 flex flex-col justify-between hover:border-blue-300 transition">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="px-2.5 py-1 rounded-lg bg-[#092B62] text-white text-xs font-black">
-                          {form.code}
-                        </span>
-                        <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                          Ready for Export
-                        </span>
-                      </div>
-                      <h4 className="text-sm font-extrabold text-stone-900 mb-1">{form.name}</h4>
-                      <p className="text-xs text-stone-500 mb-4">{form.desc}</p>
-                    </div>
-
-                    <div className="flex items-center gap-2 pt-3 border-t border-stone-200">
-                      <button
-                        onClick={() => {
-                          setPreviewDoorData({
-                            doorName: `${form.name} — ${activeSection.sectionName}`,
-                            doorRole: `Official School Form • ${activeSection.adviserName}`,
-                            gradeLevel: `Grade ${activeSection.gradeLevel}`,
-                            sectionName: activeSection.sectionName,
-                            itemData: {
-                              id: form.code,
-                              title: form.name,
-                              code: form.code,
-                              category: 'Official School Form',
-                              description: form.desc,
-                              gradeLevel: `Grade ${activeSection.gradeLevel}`,
-                              sectionName: activeSection.sectionName,
-                              adviserName: activeSection.adviserName
-                            }
-                          });
-                        }}
-                        className="flex-1 py-2 bg-gradient-to-r from-amber-400 to-yellow-400 hover:brightness-110 text-stone-950 font-black rounded-xl text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
-                      >
-                        <Eye className="w-3.5 h-3.5 text-stone-950" />
-                        <span>Preview</span>
-                      </button>
-                      <button
-                        onClick={() => showNotification('success', `Generated ${form.code} for ${activeSection.sectionName}`)}
-                        className="flex-1 py-2 bg-[#092B62] hover:bg-blue-900 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer"
-                      >
-                        <FileText className="w-3.5 h-3.5 text-amber-300" />
-                        <span>Export</span>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Tab Content 2: Door File Summary */}
-          {activeTab === 'file_summary' && (
-            <DoorFileSummary sectionName={activeSection.sectionName} gradeLevel={`Grade ${activeSection.gradeLevel}`} />
-          )}
-
-          {/* Tab Content 3: Smart Scanner Hub */}
-          {activeTab === 'camera_hub' && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              <div className="bg-slate-900 text-white p-8 rounded-3xl border border-slate-700 shadow-xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl" />
-                <div className="relative z-10 space-y-4">
-                   <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-400 text-slate-900 rounded-full text-[10px] font-black uppercase tracking-widest">
-                      <Camera className="w-3 h-3" /> Smart Vision Node
-                   </div>
-                   <h3 className="text-2xl font-black uppercase tracking-tight">Digital Inspection & Grading Hub</h3>
-                   <p className="text-slate-400 text-xs max-w-xl font-medium leading-relaxed">
-                      Use the high-precision camera to scan student activities, exam answer sheets (RUTE), and official DepEd QR codes. AI-powered scoring generates results with instant pedagogical explanations.
-                   </p>
-                   
-                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4">
-                      {[
-                        { id: 'activity', name: 'Check Activity', icon: FileCheck },
-                        { id: 'exam', name: 'Grade Exam', icon: ListChecks },
-                        { id: 'rute', name: 'RUTE Scanner', icon: Zap },
-                        { id: 'qr', name: 'Verify QR', icon: QrCode }
-                      ].map(mode => (
-                        <button 
-                          key={mode.id}
-                          onClick={() => { setScannerMode(mode.id as any); setIsScannerOpen(true); }}
-                          className="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl transition flex flex-col items-center gap-2 text-center group"
-                        >
-                           <mode.icon className="w-6 h-6 text-amber-300 group-hover:scale-110 transition-transform" />
-                           <span className="text-[10px] font-black uppercase tracking-wider">{mode.name}</span>
-                        </button>
-                      ))}
-                   </div>
-                </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                 <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Recent Inspection History</h4>
-                 <div className="space-y-3">
-                    {[
-                      { type: 'Exam', name: 'Unit 1 Science Test', score: '48/50', time: '1 hour ago' },
-                      { type: 'Activity', name: 'Math Worksheet #3', score: '95%', time: '3 hours ago' },
-                      { type: 'QR', name: 'DepEd Memo DO 003', score: 'Verified', time: 'Yesterday' }
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-slate-400">
-                               {item.type === 'QR' ? <QrCode size={18} /> : <FileText size={18} />}
-                            </div>
-                            <div>
-                               <div className="text-xs font-black text-slate-800">{item.name}</div>
-                               <div className="text-[10px] text-slate-500 font-bold uppercase">{item.type} • {item.time}</div>
-                            </div>
-                         </div>
-                         <div className="text-xs font-black text-blue-700">{item.score}</div>
-                      </div>
-                    ))}
-                 </div>
-              </div>
-
-              <DoorCameraScanner 
-                isOpen={isScannerOpen} 
-                onClose={() => setIsScannerOpen(false)} 
-                mode={scannerMode}
-                onResult={(res) => {
-                   showNotification('success', `Scan complete! Result: ${res.score || res.status}`);
-                }}
-              />
-            </div>
-          )}
-
-          {/* Tab Content 4: Weekly DLL/ILAW */}
-          {activeTab === 'weekly_dll' && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-               <div className="bg-gradient-to-r from-blue-700 to-indigo-800 p-8 rounded-3xl text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
-                  <div className="space-y-3">
-                     <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/20">
-                        <Sparkles className="w-3 h-3 text-amber-300" /> SY 2026-2027 MATATAG Aligned
-                     </div>
-                     <h3 className="text-2xl font-black uppercase tracking-tight">Weekly DLL / ILAW Generator</h3>
-                     <p className="text-blue-100 text-xs max-w-md font-medium leading-relaxed">
-                        Automatically generate your weekly Daily Lesson Log (DLL) in the official 4-part ILAW format. Includes AI-created LAS activity sheets with QR codes for 4-day integration.
-                     </p>
-                  </div>
-                  <div className="flex flex-col gap-2 w-full md:w-auto">
-                     <div className="p-3 bg-white/10 rounded-2xl border border-white/10 backdrop-blur-sm text-center">
-                        <p className="text-[9px] font-black uppercase text-blue-200 mb-1">Print Ready</p>
-                        <p className="text-xs font-black">A4 Landscape Format</p>
-                     </div>
-                  </div>
-               </div>
-
-               <ILAWGenerator />
-            </div>
-          )}
-
-          {/* Tab Content 5: Summative Hub */}
-          {activeTab === 'summative_hub' && (
-            <SummativeHub sectionName={activeSection.sectionName} gradeLevel={`Grade ${activeSection.gradeLevel}`} />
-          )}
-
-          {/* Tab Content 6: LIS Student Records (Old Summative) */}
-          {activeTab === 'summative' && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              <div className="flex items-center justify-between bg-amber-50/60 p-4 rounded-2xl border border-amber-200">
-                <div>
-                  <h3 className="text-sm font-black text-amber-900">
-                    LIS Student Masterlist &amp; Records — {activeSection.sectionName}
-                  </h3>
-                  <p className="text-xs text-amber-800">
-                    Enrolled students verified via LIS database. Only {activeSection.adviserName} and Master Creator can grade and view records.
-                  </p>
-                </div>
-                <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-400/30 text-amber-800 text-xs font-black">
-                  {activeSection.students?.length || 40} Learners Enrolled
-                </span>
-              </div>
-
-              <div className="overflow-x-auto rounded-2xl border border-stone-200 shadow-sm bg-white">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#092B62] text-white font-black">
-                    <tr>
-                      <th className="p-3">#</th>
-                      <th className="p-3">LRN</th>
-                      <th className="p-3">Student Full Name</th>
-                      <th className="p-3">Gender</th>
-                      <th className="p-3 text-center">Term 1</th>
-                      <th className="p-3 text-center">Term 2</th>
-                      <th className="p-3 text-center">Term 3</th>
-                      <th className="p-3 text-center">General Average</th>
-                      <th className="p-3 text-center">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-stone-100 font-medium text-stone-800">
-                    {((activeSection.students && activeSection.students.length > 0)
-                      ? activeSection.students
-                      : CONSOLIDATED_LIS_STUDENTS.filter(s => s.section === activeSection.sectionName || s.gradeLevel === activeSection.gradeLevel).slice(0, 40).map(s => ({
-                          lrn: s.lrn,
-                          name: s.fullName,
-                          gender: s.sex === 'M' ? 'Male' : 'Female'
-                        }))
-                    ).map((student, idx) => (
-                      <tr key={student.lrn || idx} className="hover:bg-stone-50 transition">
-                        <td className="p-3 font-bold text-stone-500">{idx + 1}</td>
-                        <td className="p-3 font-mono text-cyan-700">{student.lrn}</td>
-                        <td className="p-3 font-extrabold text-stone-900">{student.name}</td>
-                        <td className="p-3 text-stone-600">{student.gender || (idx % 2 === 0 ? 'Male' : 'Female')}</td>
-                        <td className="p-3 text-center font-bold text-blue-800">91.4</td>
-                        <td className="p-3 text-center font-bold text-blue-800">92.0</td>
-                        <td className="p-3 text-center font-bold text-blue-800">91.8</td>
-                        <td className="p-3 text-center font-black text-emerald-700">91.7 (Passed)</td>
-                        <td className="p-3 text-center">
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 text-[10px]">
-                            Promoted
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Tab Content 7: Activity Log */}
-          {activeTab === 'activity_log' && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              <div className="bg-stone-900 text-stone-200 p-5 rounded-2xl border border-stone-800 flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-black text-amber-300 flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-emerald-400" />
-                    <span>Secure Door Activity &amp; Click Telemetry Log</span>
-                  </h3>
-                  <p className="text-xs text-stone-400">
-                    Confidential audit trail of all actions, form generations, and logins for {activeSection.sectionName}. Accessible exclusively by {activeSection.adviserName} and Master Creator.
-                  </p>
-                </div>
-                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs font-bold">
-                  ● Live Secure Node
-                </span>
-              </div>
-
-              <div className="space-y-3">
-                {[
-                  { time: 'Today, 07:45 AM', action: 'Unlocked Adviser Door via Boiser Empire Authentication', user: activeSection.adviserName, device: 'Secure Terminal A1' },
-                  { time: 'Yesterday, 04:12 PM', action: 'Exported Official SF1 Masterlist to Excel', user: activeSection.adviserName, device: 'Faculty Node 3' },
-                  { time: '2 days ago, 02:30 PM', action: 'Updated Trimester Summative Grades', user: activeSection.adviserName, device: 'Faculty Node 3' },
-                  { time: '3 days ago, 10:15 AM', action: 'Master Creator Security Audit inspection', user: 'Steaven Kinth D. Boiser', device: 'Master Node' }
-                ].map((log, i) => (
-                  <div key={i} className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200 text-[#092B62] flex items-center justify-center font-bold text-xs shrink-0">
-                        🔒
-                      </div>
-                      <div>
-                        <div className="text-xs font-black text-stone-900">{log.action}</div>
-                        <div className="text-[11px] text-stone-500">Performed by <span className="font-bold text-[#092B62]">{log.user}</span> on {log.device}</div>
-                      </div>
-                    </div>
-                    <span className="text-[11px] text-stone-400 font-mono">{log.time}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Tab Content 8: Substitution Summary */}
-          {activeTab === 'substitution' && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              <div className="bg-orange-50 p-6 rounded-3xl border-2 border-orange-200">
-                <h3 className="text-lg font-black text-orange-900 flex items-center gap-2 mb-2">
-                  <AlarmClock className="w-5 h-5" /> Summary of Assigned Substitution Tasks
-                </h3>
-                <p className="text-xs text-orange-800 font-bold">
-                  List of all classes where you have been chosen as a substitute teacher. All tasks start strictly at 7:30 AM.
-                </p>
-              </div>
-
-              {myPlans.length === 0 ? (
-                <div className="p-12 text-center bg-stone-50 rounded-3xl border border-dashed border-stone-300">
-                  <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
-                  <p className="text-sm font-black text-stone-500">You have no active substitution assignments.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-4">
-                  {myPlans.map(plan => (
-                    <div key={plan.id} className="bg-white p-6 rounded-3xl border-2 border-orange-100 shadow-sm hover:shadow-md transition group">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center font-black">
-                            {plan.subject.charAt(0)}
-                          </div>
-                          <div>
-                            <h4 className="text-base font-black text-stone-900">{plan.subject}</h4>
-                            <p className="text-[10px] text-stone-500 uppercase font-black tracking-widest">{plan.section} • {plan.date}</p>
-                          </div>
-                        </div>
-                        <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase">ACTIVE</span>
-                      </div>
-                      
-                      <div className="p-4 bg-stone-50 rounded-2xl border border-stone-100 text-xs text-stone-700 italic line-clamp-3 mb-4">
-                        "{plan.content}"
-                      </div>
-
-                      <div className="flex items-center justify-between pt-4 border-t border-stone-100">
-                        <div className="text-[10px] text-stone-500 font-bold">
-                          Assigned by: <span className="text-[#092B62]">{plan.assignedByName}</span>
-                        </div>
-                        <button className="px-4 py-2 bg-[#092B62] text-white text-[10px] font-black rounded-xl hover:bg-blue-900 transition flex items-center gap-2">
-                          <Eye className="w-3.5 h-3.5" /> PREVIEW FULL REPORT
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-          {showChathead && <DoorChathead />}
+          <MasterCreatorSkillsVault />
         </div>
+      ) : activeAdminDoorId === 'admin-co-adviser' || activeAdminDoorId === 'admin-subject-teachers' ? (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          <SubjectTeachersDoorsView onClose={() => setActiveAdminDoorId(null)} />
+        </div>
+      ) : activeSection ? (
+        <MysteriousDoorsWorkspace
+          activeSection={activeSection}
+          onCloseDoor={() => setSelectedSectionId(null)}
+          isOfficialAuthorized={isOfficialAuthorized}
+          currentUser={currentUser}
+          showNotification={showNotification}
+          setPreviewDoorData={setPreviewDoorData}
+          setShowChathead={setShowChathead}
+          showChathead={showChathead}
+          setShowDemo={setShowDemo}
+        />
       ) : (
         /* Home Street View / Orderly Neighborhood House Doors */
         <div className="space-y-6">
+          {/* Security Management Center & Door Protection Policy Banner */}
+          <div className="p-4 rounded-3xl bg-gradient-to-r from-[#030e24] via-[#091b3e] to-[#04122b] border-2 border-amber-400/40 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-500 text-slate-950 flex items-center justify-center font-black shadow-lg shrink-0 border border-white/20">
+                <ShieldCheck className="w-6 h-6 text-slate-950" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-black uppercase tracking-wider text-amber-300 text-sm">
+                    DOOR &amp; ADVISER NAME PROTECTION SYSTEM
+                  </span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
+                    Adviser Lock &amp; Name Control
+                  </span>
+                </div>
+                <p className="text-[11px] text-blue-200 mt-1 leading-relaxed">
+                  <strong>Governance Policy:</strong> All door names and adviser names are editable <strong>ONLY by the assigned Adviser</strong>. Advisers have the option to <strong>LOCK their door and names</strong> to prevent intruder edits and unauthorized entry. <strong>Security Management System (Sir Steaven Kinth D. Boiser)</strong> has Master Override across all doors.
+                </p>
+              </div>
+            </div>
+            {isMasterCreator && (
+              <div className="px-3.5 py-2 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md shrink-0 border border-amber-300">
+                <span>👑 Security Management Override Active</span>
+              </div>
+            )}
+          </div>
+
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-black text-[#092B62] uppercase tracking-wider flex items-center gap-2">
@@ -1003,25 +820,15 @@ export const AdviserDoorsHome: React.FC<AdviserDoorsHomeProps> = ({ currentUser,
               </h3>
               <p className="text-xs text-stone-500 font-medium">Three School Head Executive Doors, Registrar, Guidance, Non-Teaching, and Resident Advisers.</p>
             </div>
-            <CebuanoVoiceGuide
-              compact
-              guideKey="welcome"
-              label="Audio Guide (Cebuano Male)"
-            />
           </div>
-
-          <CebuanoVoiceGuide
-            guideKey="principals"
-            label="Listen to Executive Office &amp; Faculty Neighborhood Audio Tour"
-          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               // 1. THREE SCHOOL HEAD DOORS (SWAPPED TO FIRST LOCATION)
               {
                 id: 'head-anisah',
-                name: "Ma'am Anisah (Principal III-A) Door",
-                role: 'Senior High School Executive Leadership & SIP',
+                name: "Ma'am Anisah (Principal III) Door",
+                role: 'Secondary School Principal III • SHS Institutional Leadership',
                 icon: Building,
                 badge: 'School Head',
                 bannerColor: 'from-blue-700 via-indigo-800 to-blue-900',
@@ -1075,15 +882,35 @@ export const AdviserDoorsHome: React.FC<AdviserDoorsHomeProps> = ({ currentUser,
                 bannerColor: 'from-purple-700 via-indigo-800 to-purple-900',
                 btnColor: 'bg-purple-900 hover:bg-purple-950'
               },
-              // 5. CO-ADVISER & SUBJECT TEACHERS
+               // 5. CO-ADVISER & SUBJECT TEACHERS
               {
                 id: 'admin-co-adviser',
                 name: 'Co-Advisers & Subject Teachers Door',
-                role: 'Subject Faculty (Without Co-Adviser Overhead)',
+                role: 'Subject Faculty • Lesson Plans, Chalk Scoring & LAS',
                 icon: Users,
                 badge: 'Subject Teachers',
                 bannerColor: 'from-cyan-700 via-blue-800 to-cyan-900',
                 btnColor: 'bg-cyan-900 hover:bg-cyan-950'
+              },
+              // 6. MASTER TEACHER COMMAND DOORS (15 JHS + 1 SHS EXCLUSIVE)
+              {
+                id: 'admin-master-teachers',
+                name: 'Master Teacher Command Doors (16 Doors)',
+                role: '15 JHS Exclusive Doors + 1 Exclusive SHS Master Door',
+                icon: Award,
+                badge: 'Master Teachers',
+                bannerColor: 'from-amber-500 via-yellow-600 to-amber-700',
+                btnColor: 'bg-amber-900 hover:bg-amber-950'
+              },
+              // 7. MASTER CREATOR EXCLUSIVE DOOR (ONLY STEAVEN KINTH D. BOISER)
+              {
+                id: 'admin-master-creator',
+                name: 'Master Creator Exclusive Door',
+                role: 'Steaven Kinth D. Boiser Exclusive Command Control Office',
+                icon: ShieldCheck,
+                badge: '👑 Master Creator',
+                bannerColor: 'from-red-600 via-amber-600 to-red-800',
+                btnColor: 'bg-red-700 hover:bg-red-950 shadow-red-500/20'
               }
             ].map(adminDoor => (
               <div key={adminDoor.id} className="group relative bg-gradient-to-b from-stone-50 via-white to-stone-100 rounded-3xl p-6 border-2 border-stone-300 shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col justify-between overflow-hidden">
@@ -1093,8 +920,12 @@ export const AdviserDoorsHome: React.FC<AdviserDoorsHomeProps> = ({ currentUser,
                     <span className="px-2.5 py-0.5 rounded-full bg-stone-200 text-stone-800 text-[10px] font-black uppercase tracking-wider">
                       {adminDoor.badge}
                     </span>
-                    <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                      Door Active
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                      adminDoor.id === 'admin-master-creator'
+                        ? 'text-red-600 bg-red-50 border-red-200'
+                        : 'text-emerald-600 bg-emerald-50 border-emerald-200'
+                    }`}>
+                      {adminDoor.id === 'admin-master-creator' ? 'Secure Encryption Active' : 'Door Active'}
                     </span>
                   </div>
 
@@ -1111,12 +942,18 @@ export const AdviserDoorsHome: React.FC<AdviserDoorsHomeProps> = ({ currentUser,
 
                 <div className="space-y-2">
                   <button
-                    onClick={() => setPreviewDoorData({
-                      doorName: adminDoor.name,
-                      doorRole: adminDoor.role,
-                      gradeLevel: 'Executive Level',
-                      sectionName: adminDoor.badge
-                    })}
+                    onClick={() => {
+                      if (adminDoor.id === 'admin-master-creator' && !isMasterCreator) {
+                        alert("🔒 ACCESS DENIED: Only the Master Creator, Steaven Kinth D. Boiser, can access this control panel. Your email is not authorized!");
+                        return;
+                      }
+                      setPreviewDoorData({
+                        doorName: adminDoor.name,
+                        doorRole: adminDoor.role,
+                        gradeLevel: 'Executive Level',
+                        sectionName: adminDoor.badge
+                      });
+                    }}
                     className="w-full py-2 bg-stone-100 hover:bg-stone-200 text-stone-900 border border-stone-300 rounded-xl text-xs font-black shadow-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
                   >
                     <Eye className="w-3.5 h-3.5 text-blue-700" />
@@ -1124,7 +961,13 @@ export const AdviserDoorsHome: React.FC<AdviserDoorsHomeProps> = ({ currentUser,
                   </button>
 
                   <button 
-                    onClick={() => setActiveAdminDoorId(adminDoor.id)}
+                    onClick={() => {
+                      if (adminDoor.id === 'admin-master-creator' && !isMasterCreator) {
+                        alert("🔒 ACCESS DENIED: This door is highly encrypted. Only Steaven Kinth D. Boiser is authorized to open the Master Creator Command Office!");
+                        return;
+                      }
+                      setActiveAdminDoorId(adminDoor.id);
+                    }}
                     className={`w-full py-3 ${adminDoor.btnColor} text-white rounded-2xl text-xs font-black shadow-md flex items-center justify-center gap-2 transition cursor-pointer group-hover:scale-[1.02]`}
                   >
                     <DoorClosed className="w-4 h-4 text-amber-300" />
@@ -1136,48 +979,204 @@ export const AdviserDoorsHome: React.FC<AdviserDoorsHomeProps> = ({ currentUser,
             
             {visibleSections.map(sec => {
               const secId = sec.sectionId || sec.id;
-              const hasAccess = canAccessSection(sec);
+              const isAdviser = isAdviserOfSection(sec);
+              const canEditThis = isMasterCreator || isAdviser;
+              const isEditing = editingSectionId === secId;
+
               return (
                 <div
                   key={secId}
-                  className="group relative bg-gradient-to-b from-amber-50 via-white to-amber-100/40 rounded-3xl p-6 border-2 border-amber-300 shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col justify-between overflow-hidden"
+                  className={`group relative rounded-3xl p-6 border-2 transition-all duration-300 flex flex-col justify-between overflow-hidden shadow-lg hover:shadow-2xl ${
+                    sec.isLocked
+                      ? 'bg-gradient-to-b from-stone-900 via-[#0d162a] to-slate-950 border-red-500/60 shadow-red-500/10'
+                      : 'bg-gradient-to-b from-amber-50 via-white to-amber-100/40 border-amber-300'
+                  }`}
                 >
                   {/* House Roof Illustration Banner */}
-                  <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800" />
+                  <div className={`absolute top-0 left-0 right-0 h-3 bg-gradient-to-r ${
+                    sec.isLocked
+                      ? 'from-red-600 via-rose-700 to-red-800'
+                      : 'from-amber-600 via-amber-700 to-amber-800'
+                  }`} />
 
                   <div>
                     {/* Header Badge */}
                     <div className="flex items-center justify-between mb-3 pt-1">
-                      <span className="px-3 py-1 rounded-full bg-amber-200/80 border border-amber-400 text-amber-900 text-xs font-black tracking-wide">
+                      <span className={`px-3 py-1 rounded-full text-xs font-black tracking-wide ${
+                        sec.isLocked
+                          ? 'bg-red-500/20 text-red-300 border border-red-400/40'
+                          : 'bg-amber-200/80 border border-amber-400 text-amber-900'
+                      }`}>
                         🏡 Grade {sec.gradeLevel} • {secId}
                       </span>
-                      <button
-                        onClick={() => setTutorialSection(sec)}
-                        className="px-2.5 py-1 rounded-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400 text-amber-900 text-[10px] font-black flex items-center gap-1 transition cursor-pointer"
-                        title="Open Door Guide & Audio Tutorial"
-                      >
-                        <HelpCircle className="w-3.5 h-3.5 text-amber-700" />
-                        <span>Door Guide</span>
-                      </button>
-                    </div>
+                      
+                      <div className="flex items-center gap-1.5">
+                        {/* OLS LEAVE PORTAL BRIDGE (5:00PM–7:00PM) — EXCLUSIVELY SHS FACULTY (GRADES 11 & 12) */}
+                        {(String(sec.gradeLevel).includes('11') || String(sec.gradeLevel).includes('12') || String(sec.gradeLevel).toLowerCase().includes('shs')) && (
+                          <DepEdLdnOlsStatusIndicator
+                            teacherName={sec.adviserName}
+                            isShsTeacher={true}
+                            position={`SHS Adviser • Grade ${sec.gradeLevel}`}
+                            advisoryClass={`Grade ${sec.gradeLevel} - ${sec.sectionName}`}
+                            compact={true}
+                          />
+                        )}
 
-                    <h4 className="text-base font-black text-stone-900 mb-1 group-hover:text-blue-900 transition">
-                      {sec.sectionName}
-                    </h4>
-                    <p className="text-xs text-stone-500 font-medium mb-4 flex items-center gap-1.5">
-                      <Building className="w-3.5 h-3.5 text-stone-400" />
-                      <span>{sec.roomAssignment || sec.roomNumber || 'Main Campus'} • {sec.trackOrStrand || sec.trackStrand || 'Regular High School'}</span>
-                    </p>
-
-                    {/* Adviser Nameplate Card */}
-                    <div className="bg-white/90 rounded-2xl p-3.5 border border-amber-200 shadow-sm space-y-1 mb-6">
-                      <div className="text-[10px] uppercase font-black tracking-wider text-amber-800">Resident Adviser Nameplate</div>
-                      <div className="text-sm font-black text-[#092B62] flex items-center gap-2">
-                        <UserCheck className="w-4 h-4 text-amber-600" />
-                        <span>{sec.adviserName}</span>
+                        <button
+                          onClick={() => setTutorialSection(sec)}
+                          className="px-2.5 py-1 rounded-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400 text-amber-900 text-[10px] font-black flex items-center gap-1 transition cursor-pointer"
+                          title="Open Door Guide & Audio Tutorial"
+                        >
+                          <HelpCircle className="w-3.5 h-3.5 text-amber-700" />
+                          <span>Guide</span>
+                        </button>
                       </div>
-                      <div className="text-[11px] text-stone-500 font-mono">{sec.adviserEmail || 'adviser@deped.gov.ph'}</div>
                     </div>
+
+                    {/* =========================================================================
+                        ADVISER DOOR LOCK & EDIT CONTROLS BAR
+                    ========================================================================== */}
+                    <div className="flex items-center justify-between mb-3 p-1.5 rounded-xl bg-black/40 border border-white/10 text-xs">
+                      {/* Lock Status Pill */}
+                      {sec.isLocked ? (
+                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-600/30 border border-red-500 text-red-300 text-[10px] font-black uppercase">
+                          <Lock className="w-3 h-3 text-red-400" />
+                          <span>LOCKED BY ADVISER</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-600/20 border border-emerald-500 text-emerald-400 text-[10px] font-black uppercase">
+                          <Unlock className="w-3 h-3 text-emerald-400" />
+                          <span>UNLOCKED</span>
+                        </div>
+                      )}
+
+                      {/* Action buttons (Only for Assigned Adviser or Steaven Kinth D. Boiser) */}
+                      {canEditThis ? (
+                        <div className="flex items-center gap-1">
+                          {!sec.isLocked && !isEditing && (
+                            <button
+                              onClick={() => handleStartEdit(sec)}
+                              className="px-2 py-0.5 rounded-md bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 border border-blue-400/40 text-[10px] font-bold flex items-center gap-1 cursor-pointer transition"
+                              title="Edit Door Name and Adviser Name (Adviser Only)"
+                            >
+                              <Edit3 className="w-2.5 h-2.5 text-blue-300" />
+                              <span>Edit Names</span>
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => handleToggleLock(sec)}
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition ${
+                              sec.isLocked
+                                ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-amber-400/50 font-black'
+                                : 'bg-red-500/20 hover:bg-red-500/30 text-red-300 border-red-400/40'
+                            }`}
+                            title={sec.isLocked ? "Unlock Door & Enable Editing" : "Lock Door & Names against Intruders"}
+                          >
+                            {sec.isLocked ? <Unlock className="w-2.5 h-2.5" /> : <Lock className="w-2.5 h-2.5" />}
+                            <span>{sec.isLocked ? 'Unlock' : 'Lock Door'}</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          {sec.isLocked ? '🔒 Protected' : '👤 Adviser Controlled'}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* =========================================================================
+                        DOOR NAME & ADVISER NAMEPLATE (EDITABLE MODE OR DISPLAY MODE)
+                    ========================================================================== */}
+                    {isEditing ? (
+                      <div className="space-y-2 mb-4 bg-amber-500/10 p-3 rounded-2xl border-2 border-amber-400 text-xs animate-in zoom-in-95">
+                        <div className="font-bold text-amber-300 text-[11px] uppercase flex items-center gap-1">
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span>Adviser Door Name Customizer</span>
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-slate-300 block mb-0.5 font-bold">Door / Section Name:</label>
+                          <input
+                            type="text"
+                            value={editSectionName}
+                            onChange={(e) => setEditSectionName(e.target.value)}
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-amber-400/80 text-white font-bold text-xs focus:outline-none focus:ring-1 focus:ring-amber-300"
+                            placeholder="e.g. Grade 10 - Einstein"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-slate-300 block mb-0.5 font-bold">Resident Adviser Name:</label>
+                          <input
+                            type="text"
+                            value={editAdviserName}
+                            onChange={(e) => setEditAdviserName(e.target.value)}
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-amber-400/80 text-amber-300 font-bold text-xs focus:outline-none focus:ring-1 focus:ring-amber-300"
+                            placeholder="e.g. Sir Stephen Tabal"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2 pt-1">
+                          <button
+                            onClick={() => handleSaveEdit(secId)}
+                            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[11px] flex items-center gap-1 transition cursor-pointer shadow"
+                          >
+                            <Save className="w-3 h-3" />
+                            <span>Save Names</span>
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-300 text-[11px] font-bold cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <h4 className={`text-base font-black mb-1 transition flex items-center gap-2 ${
+                          sec.isLocked ? 'text-white' : 'text-stone-900 group-hover:text-blue-900'
+                        }`}>
+                          {sec.isLocked && <Lock className="w-4 h-4 text-red-500 inline shrink-0" />}
+                          <span>{sec.sectionName}</span>
+                        </h4>
+                        
+                        <p className={`text-xs font-medium mb-4 flex items-center gap-1.5 ${
+                          sec.isLocked ? 'text-slate-400' : 'text-stone-500'
+                        }`}>
+                          <Building className="w-3.5 h-3.5 opacity-60" />
+                          <span>{sec.roomAssignment || sec.roomNumber || 'Main Campus'} • {sec.trackOrStrand || sec.trackStrand || 'Regular High School'}</span>
+                        </p>
+
+                        {/* Adviser Nameplate Card */}
+                        <div className={`rounded-2xl p-3.5 border shadow-sm space-y-1 mb-6 ${
+                          sec.isLocked 
+                            ? 'bg-black/60 border-red-500/30 text-white' 
+                            : 'bg-white/90 border-amber-200'
+                        }`}>
+                          <div className="text-[10px] uppercase font-black tracking-wider flex items-center justify-between">
+                            <span className={sec.isLocked ? 'text-red-300' : 'text-amber-800'}>
+                              Resident Adviser Nameplate
+                            </span>
+                            {sec.isLocked ? (
+                              <span className="text-[9px] text-red-400 font-mono font-bold">🔒 LOCKED</span>
+                            ) : (
+                              <span className="text-[9px] text-emerald-600 font-mono">Editable by Adviser</span>
+                            )}
+                          </div>
+                          
+                          <div className={`text-sm font-black flex items-center gap-2 ${
+                            sec.isLocked ? 'text-amber-300' : 'text-[#092B62]'
+                          }`}>
+                            <UserCheck className={`w-4 h-4 ${sec.isLocked ? 'text-amber-400' : 'text-amber-600'}`} />
+                            <span>{sec.adviserName}</span>
+                          </div>
+                          
+                          <div className={`text-[11px] font-mono ${
+                            sec.isLocked ? 'text-slate-400' : 'text-stone-500'
+                          }`}>
+                            {sec.adviserEmail || 'adviser@deped.gov.ph'}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* Creative Door Opener & Preview Buttons */}
@@ -1189,25 +1188,206 @@ export const AdviserDoorsHome: React.FC<AdviserDoorsHomeProps> = ({ currentUser,
                         gradeLevel: `Grade ${sec.gradeLevel}`,
                         sectionName: sec.sectionName
                       })}
-                      className="w-full py-2 bg-[#092B62]/10 hover:bg-[#092B62]/20 text-[#092B62] border border-[#092B62]/30 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer"
+                      className={`w-full py-2 border rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                        sec.isLocked
+                          ? 'bg-white/5 hover:bg-white/10 text-slate-200 border-white/10'
+                          : 'bg-[#092B62]/10 hover:bg-[#092B62]/20 text-[#092B62] border-[#092B62]/30'
+                      }`}
                     >
-                      <Eye className="w-3.5 h-3.5 text-blue-800" />
+                      <Eye className="w-3.5 h-3.5 text-blue-400" />
                       <span>👁️ Preview &amp; Download Results</span>
                     </button>
 
                     <button
-                      onClick={() => setSelectedSectionId(secId)}
-                      className="w-full py-3 bg-gradient-to-r from-[#092B62] via-blue-800 to-[#092B62] hover:from-blue-900 hover:to-stone-900 text-white rounded-2xl text-xs font-black shadow-md flex items-center justify-center gap-2 transition cursor-pointer group-hover:scale-[1.02]"
+                      onClick={() => handleOpenDoor(sec)}
+                      className={`w-full py-3 rounded-2xl text-xs font-black shadow-md flex items-center justify-center gap-2 transition cursor-pointer group-hover:scale-[1.02] ${
+                        sec.isLocked
+                          ? 'bg-gradient-to-r from-red-900 via-rose-950 to-black text-white hover:from-red-800 hover:to-rose-900 border border-red-500/50'
+                          : 'bg-gradient-to-r from-[#092B62] via-blue-800 to-[#092B62] hover:from-blue-900 hover:to-stone-900 text-white'
+                      }`}
                     >
-                      <DoorClosed className="w-4 h-4 text-amber-300 group-hover:hidden" />
-                      <DoorOpen className="w-4 h-4 text-amber-300 hidden group-hover:block" />
-                      <span>Open {sec.sectionName} Door</span>
+                      {sec.isLocked ? (
+                        <>
+                          <Lock className="w-4 h-4 text-amber-400" />
+                          <span>
+                            {isMasterCreator 
+                              ? `Open Locked Door (Master Override)` 
+                              : `Open ${sec.sectionName} (Passcode Protected)`}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <DoorClosed className="w-4 h-4 text-amber-300 group-hover:hidden" />
+                          <DoorOpen className="w-4 h-4 text-amber-300 hidden group-hover:block" />
+                          <span>Open {sec.sectionName} Door</span>
+                        </>
+                      )}
                       <ChevronRight className="w-4 h-4 opacity-70" />
                     </button>
                   </div>
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL 1: SET ADVISER LOCK & PIN MODAL
+      ========================================================================== */}
+      {lockingSection && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-gradient-to-b from-stone-900 to-slate-950 border-2 border-amber-400 rounded-3xl max-w-md w-full p-6 text-white shadow-2xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-red-600/30 border border-red-500 flex items-center justify-center text-red-400">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black uppercase text-amber-300">
+                    Lock Door &amp; Adviser Names
+                  </h3>
+                  <p className="text-xs text-slate-300">{lockingSection.sectionName}</p>
+                </div>
+              </div>
+              <button onClick={() => setLockingSection(null)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs leading-relaxed text-slate-300">
+              <p>
+                Locking this door prevents intruders and unauthorized users from altering the <strong>Door Name</strong>, changing the <strong>Adviser Name</strong>, or entering without credentials.
+              </p>
+              
+              <div className="p-3 rounded-2xl bg-black/60 border border-white/10 space-y-1.5">
+                <label className="text-[11px] font-bold text-amber-300 block">
+                  Set Security Unlock PIN (for guests/intruder pass):
+                </label>
+                <div className="flex items-center gap-2">
+                  <KeyRound className="w-4 h-4 text-amber-400" />
+                  <input
+                    type="text"
+                    value={lockPinInput}
+                    onChange={(e) => setLockPinInput(e.target.value)}
+                    placeholder="e.g. 1234"
+                    maxLength={10}
+                    className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-amber-400 text-amber-300 font-mono font-bold text-sm focus:outline-none"
+                  />
+                </div>
+                <span className="text-[10px] text-slate-400">
+                  Default PIN is <strong>1234</strong>.
+                </span>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-blue-950/60 border border-blue-400/30 text-[11px] text-blue-200">
+                🛡️ <strong>Security Management System Notice:</strong> Sir Steaven Kinth D. Boiser has permanent Master Override access to enter and unlock any door at all times.
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                onClick={handleConfirmLock}
+                className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-1.5 shadow"
+              >
+                <Lock className="w-4 h-4" />
+                <span>Confirm &amp; Lock Door</span>
+              </button>
+              <button
+                onClick={() => setLockingSection(null)}
+                className="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 font-bold text-xs cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL 2: INTRUDER SECURITY GATE / PASSCODE UNLOCK MODAL
+      ========================================================================== */}
+      {gateLockedSection && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-gradient-to-b from-[#091b3e] to-[#040c1c] border-2 border-red-500 rounded-3xl max-w-md w-full p-6 text-white shadow-2xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-red-600/30 border-2 border-red-500 flex items-center justify-center text-red-400 shadow-md">
+                  <ShieldAlert className="w-6 h-6 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black uppercase text-red-400 tracking-tight">
+                    LOCKED DOOR SECURITY GATE
+                  </h3>
+                  <p className="text-xs text-slate-300">{gateLockedSection.sectionName}</p>
+                </div>
+              </div>
+              <button onClick={() => setGateLockedSection(null)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs leading-relaxed text-slate-300">
+              <div className="p-3.5 rounded-2xl bg-red-950/40 border border-red-500/40 text-red-200">
+                This door is <strong>LOCKED</strong> by Resident Adviser <strong>{gateLockedSection.adviserName}</strong> to prevent unauthorized intruder entry and tampering.
+              </div>
+
+              <div className="space-y-1.5 pt-1">
+                <label className="text-[11px] font-bold text-amber-300 block">
+                  Enter Adviser Security PIN:
+                </label>
+                <div className="flex items-center gap-2">
+                  <Key className="w-4 h-4 text-amber-400" />
+                  <input
+                    type="password"
+                    value={gatePinInput}
+                    onChange={(e) => setGatePinInput(e.target.value)}
+                    placeholder="Enter 4-digit PIN..."
+                    autoFocus
+                    className="w-full px-3 py-2 rounded-xl bg-black/80 border border-amber-400 text-white font-mono text-center tracking-widest text-lg focus:outline-none"
+                    onKeyDown={(e) => e.key === 'Enter' && handleVerifyGatePin()}
+                  />
+                </div>
+              </div>
+
+              {gateError && (
+                <div className="p-2.5 rounded-xl bg-red-600/20 border border-red-500 text-red-300 text-[11px] font-bold">
+                  {gateError}
+                </div>
+              )}
+
+              {/* Master System Override Button (Steaven Kinth D. Boiser only) */}
+              {isMasterCreator && (
+                <div className="pt-2">
+                  <button
+                    onClick={() => {
+                      showNotification('success', `🛡️ MASTER OVERRIDE: Entering ${gateLockedSection.sectionName}.`);
+                      setSelectedSectionId(gateLockedSection.sectionId || gateLockedSection.id);
+                      setGateLockedSection(null);
+                    }}
+                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow"
+                  >
+                    <span>👑 Steaven Kinth D. Boiser Master Override Unlock</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                onClick={handleVerifyGatePin}
+                className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-1.5 shadow"
+              >
+                <Unlock className="w-4 h-4" />
+                <span>Submit &amp; Enter Door</span>
+              </button>
+              <button
+                onClick={() => setGateLockedSection(null)}
+                className="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 font-bold text-xs cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

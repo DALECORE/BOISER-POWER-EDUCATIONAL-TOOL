@@ -3,7 +3,16 @@ export interface SecurityBreachRecord {
   intruderName: string;
   intruderEmail: string;
   attemptedAction: string;
-  violationType: 'UNAUTHORIZED_COPY_ATTEMPT' | 'DATABASE_INSPECTION_ATTEMPT' | 'MASTER_DOOR_BREACH' | 'SOURCE_CODE_STEAL_QUERY' | 'SUSPICIOUS_SYSTEM_TAMPER';
+  violationType: 
+    | 'UNAUTHORIZED_COPY_ATTEMPT' 
+    | 'DATABASE_INSPECTION_ATTEMPT' 
+    | 'MASTER_DOOR_BREACH' 
+    | 'SOURCE_CODE_STEAL_QUERY' 
+    | 'SUSPICIOUS_SYSTEM_TAMPER'
+    | 'SCREENSHOT_PROHIBITED_ATTEMPT'
+    | 'VIDEO_RECORDING_ATTEMPT'
+    | 'UNAUTHORIZED_SHARE_ATTEMPT'
+    | 'DEVTOOLS_INSPECT_ATTEMPT';
   timestamp: string;
   ipOrDevice: string;
   queryOrTarget: string;

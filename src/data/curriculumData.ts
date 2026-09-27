@@ -65,6 +65,27 @@ export const CURRICULUM_SOURCES: CurriculumSource[] = [
     CGSource: "TESDA-NCII Aligned CG",
     TransitionFlag: "TECHPRO_ENHANCED",
     VerificationStatus: "VERIFIED_BY_LNNCHS_FACULTY"
+  },
+  {
+    ID: "SRC-003",
+    SchoolYear: "2026-2027",
+    GradeLevel: "Grade 12",
+    KeyStage: "Key Stage 4",
+    Curriculum: "ECAIR AI Governance (Sep 2026)",
+    Track: "Academic Track - HUMSS/STEM",
+    SubjectCode: "AI-12-ETHICS",
+    SubjectTitle: "AI and Data Science Foundations",
+    Term: "3",
+    Week: "Week 1-4",
+    Domain: "Information Technology",
+    LearningCompetency: "Evaluate ethical implications and algorithmic bias in automated school governance systems.",
+    CompetencyCode: "TP-AI-T3-01",
+    ContentStandard: "The learner demonstrates understanding of AI ethics, data privacy laws, and automated decision-making frameworks.",
+    PerformanceStandard: "The learner conducts a simulated audit of an AI-powered leadership hiring system for fairness and transparency.",
+    AssessmentWeightSet: "Written 30% | Performance 50% | Exam 20%",
+    BOWSource: "ECAIR Policy Proposal 2026",
+    CGSource: "Regional Innovation Framework",
+    TransitionFlag: "ECAIR_PILOT_IMPLEMENTATION",
+    VerificationStatus: "PENDING_REGIONAL_VALIDATION"
   }
-  // Add more entries here as needed
 ];

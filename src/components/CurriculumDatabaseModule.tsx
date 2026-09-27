@@ -21,7 +21,7 @@ import {
   SourceStatus
 } from '../types/masterResearchCurriculum';
 import { SEED_CURRICULUM_RECORDS } from '../data/masterDatabaseSeed';
-import { Edit3, Save, X } from 'lucide-react';
+import { Edit3, Save, X, Trash2 } from 'lucide-react';
 
 interface CurriculumDatabaseModuleProps {
   importedRecords?: CurriculumRecordMaster[];
@@ -42,6 +42,7 @@ export const CurriculumDatabaseModule: React.FC<CurriculumDatabaseModuleProps> =
   const [selectedStatus, setSelectedStatus] = useState<SourceStatus | 'ALL'>('ALL');
   const [inspectRecord, setInspectRecord] = useState<CurriculumRecordMaster | null>(null);
   const [editingRecord, setEditingRecord] = useState<CurriculumRecordMaster | null>(null);
+  const [recordToDelete, setRecordToDelete] = useState<CurriculumRecordMaster | null>(null);
 
   const saveRecords = (newRecords: CurriculumRecordMaster[]) => {
     setRecords(newRecords);
@@ -80,13 +81,23 @@ export const CurriculumDatabaseModule: React.FC<CurriculumDatabaseModuleProps> =
       'curriculum_version',
       'school_year',
       'grade_level',
+      'key_stage',
+      'track',
       'learning_area',
       'subject',
+      'subject_code',
       'domain',
       'competency_code',
       'competency_text',
       'term',
+      'week',
       'quarter',
+      'content_standard',
+      'performance_standard',
+      'bow_source',
+      'cg_source',
+      'assessment_weight_set',
+      'transition_flag',
       'source_document',
       'verification_status'
     ];
@@ -99,13 +110,23 @@ export const CurriculumDatabaseModule: React.FC<CurriculumDatabaseModuleProps> =
           r.curriculum_version,
           r.school_year,
           r.grade_level,
+          r.key_stage || '',
+          r.track || '',
           r.learning_area,
           r.subject,
+          r.subject_code || '',
           r.domain || '',
           r.competency_code,
           `"${(r.competency_text || '').replace(/"/g, '""')}"`,
           r.term,
+          r.week || '',
           r.quarter || '',
+          `"${(r.content_standard || '').replace(/"/g, '""')}"`,
+          `"${(r.performance_standard || '').replace(/"/g, '""')}"`,
+          `"${(r.bow_source || '').replace(/"/g, '""')}"`,
+          `"${(r.cg_source || '').replace(/"/g, '""')}"`,
+          `"${(r.assessment_weight_set || '').replace(/"/g, '""')}"`,
+          r.transition_flag ? 'TRUE' : 'FALSE',
           `"${(r.source_document || '').replace(/"/g, '""')}"`,
           r.verification_status
         ].join(',')
@@ -278,20 +299,27 @@ export const CurriculumDatabaseModule: React.FC<CurriculumDatabaseModuleProps> =
               <span className="text-stone-400 truncate flex-1" title={record.source_document}>
                 Source: {record.source_document}
               </span>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
                 <button
                   onClick={() => setEditingRecord(record)}
-                  className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold transition flex items-center gap-1 cursor-pointer"
+                  className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold transition flex items-center gap-1 cursor-pointer"
                 >
                   <Edit3 className="w-3.5 h-3.5" />
                   <span>Edit</span>
                 </button>
                 <button
                   onClick={() => setInspectRecord(record)}
-                  className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#0038A8] font-bold transition flex items-center gap-1 cursor-pointer"
+                  className="px-2.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#0038A8] font-bold transition flex items-center gap-1 cursor-pointer"
                 >
                   <Eye className="w-3.5 h-3.5" />
                   <span>Inspect</span>
+                </button>
+                <button
+                  onClick={() => setRecordToDelete(record)}
+                  className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold transition flex items-center gap-1 cursor-pointer animate-fade-in"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete</span>
                 </button>
               </div>
             </div>
@@ -339,11 +367,62 @@ export const CurriculumDatabaseModule: React.FC<CurriculumDatabaseModuleProps> =
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-stone-500">Subject</label>
+                  <label className="text-[10px] font-black uppercase text-stone-500">Subject Title</label>
                   <input
                     type="text"
                     value={editingRecord.subject}
                     onChange={(e) => setEditingRecord({ ...editingRecord, subject: e.target.value })}
+                    className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-stone-500">Subject Code</label>
+                  <input
+                    type="text"
+                    value={editingRecord.subject_code || ''}
+                    onChange={(e) => setEditingRecord({ ...editingRecord, subject_code: e.target.value })}
+                    className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-stone-500">Track</label>
+                  <input
+                    type="text"
+                    value={editingRecord.track || ''}
+                    onChange={(e) => setEditingRecord({ ...editingRecord, track: e.target.value })}
+                    className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-stone-500">Key Stage</label>
+                  <input
+                    type="text"
+                    value={editingRecord.key_stage || ''}
+                    onChange={(e) => setEditingRecord({ ...editingRecord, key_stage: e.target.value })}
+                    className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-stone-500">Week</label>
+                  <input
+                    type="text"
+                    value={editingRecord.week || ''}
+                    onChange={(e) => setEditingRecord({ ...editingRecord, week: e.target.value })}
+                    className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-stone-500">Assessment Weight</label>
+                  <input
+                    type="text"
+                    value={editingRecord.assessment_weight_set || ''}
+                    onChange={(e) => setEditingRecord({ ...editingRecord, assessment_weight_set: e.target.value })}
                     className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs"
                   />
                 </div>
@@ -417,16 +496,35 @@ export const CurriculumDatabaseModule: React.FC<CurriculumDatabaseModuleProps> =
                   <span className="font-bold text-stone-800">{inspectRecord.curriculum_version}</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200">
-                  <span className="text-stone-500 block">Term &amp; Quarter</span>
-                  <span className="font-bold text-stone-800">{inspectRecord.term} ({inspectRecord.quarter || 'N/A'})</span>
+                  <span className="text-stone-500 block">Term, Week &amp; Quarter</span>
+                  <span className="font-bold text-stone-800">{inspectRecord.term} - {inspectRecord.week || 'N/A'} ({inspectRecord.quarter || 'N/A'})</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200">
-                  <span className="text-stone-500 block">Grade &amp; Subject</span>
-                  <span className="font-bold text-stone-800">{inspectRecord.grade_level} - {inspectRecord.subject}</span>
+                  <span className="text-stone-500 block">Grade, Subject &amp; Code</span>
+                  <span className="font-bold text-stone-800">{inspectRecord.grade_level} - {inspectRecord.subject} ({inspectRecord.subject_code || 'N/A'})</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200">
                   <span className="text-stone-500 block">Verification Status</span>
                   <span className="font-bold text-emerald-700">{inspectRecord.verification_status}</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200">
+                  <span className="text-stone-500 block">Key Stage &amp; Track</span>
+                  <span className="font-bold text-stone-800">{inspectRecord.key_stage || 'N/A'} - {inspectRecord.track || 'N/A'}</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200">
+                  <span className="text-stone-500 block">Assessment Weight Set</span>
+                  <span className="font-bold text-blue-700">{inspectRecord.assessment_weight_set || 'N/A'}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 font-mono text-[11px]">
+                <div className="p-2.5 rounded-xl bg-blue-50/50 border border-blue-100">
+                  <span className="text-blue-500 block">BOW Source</span>
+                  <span className="font-bold text-blue-900">{inspectRecord.bow_source || 'N/A'}</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-blue-50/50 border border-blue-100">
+                  <span className="text-blue-500 block">CG Source</span>
+                  <span className="font-bold text-blue-900">{inspectRecord.cg_source || 'N/A'}</span>
                 </div>
               </div>
 
@@ -467,6 +565,67 @@ export const CurriculumDatabaseModule: React.FC<CurriculumDatabaseModuleProps> =
                 className="px-5 py-2 rounded-xl bg-[#0038A8] text-white font-bold text-xs"
               >
                 Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Deletion Confirmation Dialog */}
+      {recordToDelete && (
+        <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-2 border-red-500 space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 border-b border-stone-100 pb-3">
+              <div className="w-12 h-12 rounded-2xl bg-red-50 border border-red-200 flex items-center justify-center text-red-700 shadow-xs">
+                <AlertTriangle className="w-7 h-7 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-stone-900">Confirm Deletion</h3>
+                <p className="text-xs text-red-600 font-bold tracking-wider">Accidental Loss Prevention</p>
+              </div>
+            </div>
+
+            <div className="space-y-2 text-xs leading-relaxed text-stone-700">
+              <p className="font-medium text-stone-900">
+                Are you absolutely sure you want to delete the following item from the master Competency Database?
+              </p>
+              
+              <div className="p-3 bg-stone-50 border border-stone-200 rounded-2xl font-mono text-[11px] space-y-1.5">
+                <div>
+                  <span className="text-stone-400 block uppercase font-bold text-[9px]">Competency Code:</span>
+                  <span className="font-black text-red-700">{recordToDelete.competency_code}</span>
+                </div>
+                <div>
+                  <span className="text-stone-400 block uppercase font-bold text-[9px]">Statement:</span>
+                  <p className="text-stone-800 line-clamp-3 leading-normal">{recordToDelete.competency_text}</p>
+                </div>
+                <div>
+                  <span className="text-stone-400 block uppercase font-bold text-[9px]">Subject &amp; Term:</span>
+                  <span className="font-bold text-stone-700">{recordToDelete.subject} ({recordToDelete.term})</span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-red-900 text-[11px] font-medium">
+                ⚠️ Warning: This action cannot be undone. Removing items from the curriculum database can disrupt associated weekly lesson planners and active daily logs.
+              </div>
+            </div>
+
+            <div className="pt-2 flex gap-3">
+              <button
+                onClick={() => setRecordToDelete(null)}
+                className="flex-1 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-black rounded-xl text-xs transition cursor-pointer"
+              >
+                No, Keep Record
+              </button>
+              <button
+                onClick={() => {
+                  const updated = records.filter(r => r.curriculum_id !== recordToDelete.curriculum_id);
+                  saveRecords(updated);
+                  setRecordToDelete(null);
+                }}
+                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl text-xs transition shadow-md cursor-pointer animate-pulse"
+              >
+                Yes, Confirm Delete
               </button>
             </div>
           </div>

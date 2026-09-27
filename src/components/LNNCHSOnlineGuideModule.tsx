@@ -21,7 +21,6 @@ import {
   Layers,
   Globe
 } from 'lucide-react';
-import { CebuanoVoiceGuide } from './CebuanoVoiceGuide';
 
 export const LNNCHSOnlineGuideModule: React.FC = () => {
   const [activeTopic, setActiveTopic] = useState<string>('getting_started');
@@ -30,7 +29,6 @@ export const LNNCHSOnlineGuideModule: React.FC = () => {
     { id: 'getting_started', title: '🚀 Getting Started & System Overview', icon: Sparkles },
     { id: 'las_available', title: '✨ LAS Available (Activity Sheets)', icon: FileText },
     { id: 'lrmds_sync', title: '📦 LRMDS Resources & Sync', icon: Layers },
-    { id: 'deped_commons', title: '🌐 DepEd Commons Integration', icon: Globe },
     { id: 'school_forms', title: '📄 Generating SF1–SF10', icon: FileText },
     { id: 'lis_directory', title: '👥 120-Section LIS Directory', icon: Building2 },
     { id: 'blank_templates', title: '📋 Blank Templates & Printouts', icon: Printer }
@@ -62,11 +60,6 @@ export const LNNCHSOnlineGuideModule: React.FC = () => {
       </div>
 
       <div className="p-6 sm:p-8 space-y-6">
-        <CebuanoVoiceGuide
-          guideKey="userGuide"
-          label="Listen to Online User Guide (Cebuano Male Voice)"
-        />
-
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar Topics */}
           <div className="lg:col-span-1 space-y-2">

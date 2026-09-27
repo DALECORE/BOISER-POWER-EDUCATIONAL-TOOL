@@ -13,6 +13,7 @@ interface PlanGenerationOptions {
   lessonTitle?: string;
   startDate?: string;
   holidays?: string[];
+  sessions?: number;
 }
 
 export function generateDO3PlanFromBOWEntry(options: PlanGenerationOptions): ILAWCompletePlan {
@@ -26,15 +27,17 @@ export function generateDO3PlanFromBOWEntry(options: PlanGenerationOptions): ILA
     region = 'Region X – Northern Mindanao',
     lessonTitle,
     startDate,
-    holidays = []
+    holidays = [],
+    sessions: requestedSessions
   } = options;
 
+  const sessionCount = requestedSessions || entry.sessions || 4;
   const actualTitle = lessonTitle && lessonTitle.trim() !== '' ? lessonTitle : entry.topic;
 
   // Compute session dates
-  let sessionDateStrings: string[] = ['Session 1', 'Session 2', 'Session 3', 'Session 4'];
+  let sessionDateStrings: string[] = Array.from({ length: sessionCount }, (_, i) => `Session ${i + 1}`);
   if (startDate) {
-    const datesList = computeSessionDates(startDate, entry.week, holidays, entry.sessions || 4);
+    const datesList = computeSessionDates(startDate, entry.week, holidays, sessionCount);
     if (datesList && datesList.length > 0) {
       sessionDateStrings = datesList.map(d =>
         d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -42,50 +45,50 @@ export function generateDO3PlanFromBOWEntry(options: PlanGenerationOptions): ILA
     }
   }
 
-  // Generate 4 Session Objectives
-  const objectives = [
-    {
-      sessionNumber: 1,
-      sessionDate: sessionDateStrings[0] || 'Session 1',
+  // Generate dynamic Session Objectives
+  const objectives = Array.from({ length: sessionCount }, (_, i) => {
+    const sNum = i + 1;
+    const sDate = sessionDateStrings[i] || `Session ${sNum}`;
+    
+    if (sNum === 1) {
+      return {
+        sessionNumber: 1,
+        sessionDate: sDate,
+        objectives: [
+          `Identify and define foundational principles of ${actualTitle}.`,
+          `Examine real-life applications and context within ${entry.subject}.`,
+          'Demonstrate active engagement and collaborative problem analysis.'
+        ]
+      };
+    }
+    if (sNum === sessionCount) {
+      return {
+        sessionNumber: sNum,
+        sessionDate: sDate,
+        objectives: [
+          `Evaluate practical mastery and produce the standalone individual written output.`,
+          'Reflect on personal learning progress and practical career or civic application.'
+        ]
+      };
+    }
+    return {
+      sessionNumber: sNum,
+      sessionDate: sDate,
       objectives: [
-        `Identify and define foundational principles of ${actualTitle}.`,
-        `Examine real-life applications and context within ${entry.subject}.`,
-        'Demonstrate active engagement and collaborative problem analysis.'
-      ]
-    },
-    {
-      sessionNumber: 2,
-      sessionDate: sessionDateStrings[1] || 'Session 2',
-      objectives: [
-        `Analyze core structures, models, and elements of ${entry.competency}.`,
+        `Analyze core structures, models, and elements of ${entry.topic}.`,
         'Execute guided collaborative exploration using contextualized graphic organizers or case studies.'
       ]
-    },
-    {
-      sessionNumber: 3,
-      sessionDate: sessionDateStrings[2] || 'Session 3',
-      objectives: [
-        `Synthesize key insights and demonstrate problem-solving in real-world scenarios.`,
-        'Formulate evidence-based arguments, solutions, or creative models.'
-      ]
-    },
-    {
-      sessionNumber: 4,
-      sessionDate: sessionDateStrings[3] || 'Session 4',
-      objectives: [
-        `Evaluate practical mastery and produce the standalone individual written output.`,
-        'Reflect on personal learning progress and practical career or civic application.'
-      ]
-    }
-  ];
+    };
+  });
 
   // Subject-specific activity generator
-  const activitySheets: ILAWLearningActivitySheet[] = [1, 2, 3, 4].map(sNum => {
-    const sDate = sessionDateStrings[sNum - 1] || `Session ${sNum}`;
+  const activitySheets: ILAWLearningActivitySheet[] = Array.from({ length: sessionCount }, (_, i) => {
+    const sNum = i + 1;
+    const sDate = sessionDateStrings[i] || `Session ${sNum}`;
     return createActivitySheetForSubject(entry, actualTitle, sNum, sDate);
   });
 
-  // Presentation slides with >= 35pt body text
+  // Presentation slides
   const presentationSlides: ILAWSlide[] = createSlidesForPlan(entry, actualTitle, teacher, school, sessionDateStrings);
 
   return {
@@ -105,7 +108,7 @@ export function generateDO3PlanFromBOWEntry(options: PlanGenerationOptions): ILA
       term: entry.termNumber,
       bowWeek: `${entry.weekLabel} (${entry.hours} Hours)`,
       inclusiveTeachingDates: dates,
-      numberOfSessions: entry.sessions || 4,
+      numberOfSessions: sessionCount,
       references: [
         `DepEd Strengthened Senior High School Curriculum Guide (${entry.subject})`,
         `DepEd Order No. 009, s. 2026 (Three-Term Calendar and Trimester Policy)`,
@@ -116,7 +119,7 @@ export function generateDO3PlanFromBOWEntry(options: PlanGenerationOptions): ILA
         'This lesson plan was formulated with the assistance of artificial intelligence tools in drafting, structuring, and organizing competencies, learning tasks, guide questions, and assessment blueprints in compliance with DepEd Order No. 3, s. 2026 Annex A. The teacher-developer thoroughly reviewed, adapted, contextualized, and takes full professional accountability for its pedagogical integrity and alignment with learner needs and curriculum standards.'
     },
     matrix: {
-      intentions: `The 4-session learning cycle aims to guide learners in mastering ${actualTitle} within ${entry.subject}. Through contextualized inquiries, collaborative workshops, and structured individual outputs, learners develop critical thinking, disciplinary competence, and authentic real-world problem-solving abilities aligned with DepEd 2026 standards.`,
+      intentions: `The ${sessionCount}-session learning cycle aims to guide learners in mastering ${actualTitle} within ${entry.subject}. Through contextualized inquiries, collaborative workshops, and structured individual outputs, learners develop critical thinking, disciplinary competence, and authentic real-world problem-solving abilities aligned with DepEd 2026 standards.`,
       competency: {
         melc: entry.learningCompetency,
         content: entry.topic,
@@ -125,18 +128,20 @@ export function generateDO3PlanFromBOWEntry(options: PlanGenerationOptions): ILA
       },
       objectives: objectives,
       learnerContext: `Learners in ${section} demonstrate diverse socio-economic, linguistic, and academic readiness. Instruction employs multi-tiered scaffolding, high-contrast visual materials, collaborative group structures, and differentiated inquiry challenges to guarantee universal access and mastery.`,
-      learningExperience: [
-        {
-          sessionNumber: 1,
-          sessionDate: sessionDateStrings[0] || 'Session 1',
+      learningExperience: Array.from({ length: sessionCount }, (_, i) => {
+        const sNum = i + 1;
+        const sDate = sessionDateStrings[i] || `Session ${sNum}`;
+        return {
+          sessionNumber: sNum,
+          sessionDate: sDate,
           preLesson: {
             engage: {
               time: '10 mins',
-              activity: entry.s1.split('Engage:')[1]?.trim() || `Introductory provocation and multimedia exemplar connecting to ${actualTitle}.`
+              activity: sNum === 1 ? (entry.s1.split('Engage:')[1]?.trim() || `Introductory provocation and multimedia exemplar connecting to ${actualTitle}.`) : `Recap of previous session key concepts through a rapid flash-inquiry game.`
             },
             elicit: {
               time: '10 mins',
-              activity: entry.s1.split('Engage:')[0]?.replace('Elicit:', '').trim() || `Diagnostic check: Activating prior knowledge regarding ${entry.topic}.`,
+              activity: sNum === 1 ? (entry.s1.split('Engage:')[0]?.replace('Elicit:', '').trim() || `Diagnostic check: Activating prior knowledge regarding ${entry.topic}.`) : `Targeted questioning examining theoretical nuances and structural models.`,
               expectedResponses: 'Learners draw upon everyday experiences, prior grade concepts, and regional community practices.'
             }
           },
@@ -144,14 +149,14 @@ export function generateDO3PlanFromBOWEntry(options: PlanGenerationOptions): ILA
             explore: {
               time: '25 mins',
               groupActivity: {
-                formatType: 'Collaborative Problem Analysis',
+                formatType: sNum === 1 ? 'Collaborative Problem Analysis' : 'Matrix Analysis & Workshop Practicum',
                 title: `Group Investigation: Deconstructing ${actualTitle}`,
                 instructions: 'Work in assigned clusters of 4-5 members to analyze the provided case scenario and record findings on the group matrix.'
               },
               individualOutput: {
-                outputType: 'Written Conceptual Map',
-                title: 'Personal Learning Synthesis',
-                instructions: 'Individually record the core definitions and draft one concrete real-world example from your own household or community.'
+                outputType: sNum === sessionCount ? 'Summative Written Output & Reflection' : 'Written Conceptual Map / Analytical Worksheet',
+                title: sNum === sessionCount ? 'Mastery Assessment & Reflective Journal' : 'Personal Learning Synthesis',
+                instructions: sNum === sessionCount ? 'Complete the individual performance assessment task and write a 250-word synthesis of insights gained.' : 'Individually record the core definitions and draft one concrete real-world example from your own household or community.'
               }
             },
             explain: {
@@ -165,142 +170,19 @@ export function generateDO3PlanFromBOWEntry(options: PlanGenerationOptions): ILA
           },
           learningResources: [
             'DepEd Learner Material',
-            'Contextualized Activity Sheet (LAS 1)',
+            `Contextualized Activity Sheet (LAS ${sNum})`,
             'Audio-visual presentation slide deck'
           ],
           opportunitiesForIntegration: [
             { area: 'Values & Ethics', connection: 'Practicing intellectual honesty, constructive peer critique, and active listening.' },
             { area: 'Career & TechPro', connection: 'Relating analytical thinking to industrial standards and professional competence.' }
           ]
-        },
-        {
-          sessionNumber: 2,
-          sessionDate: sessionDateStrings[1] || 'Session 2',
-          preLesson: {
-            engage: {
-              time: '10 mins',
-              activity: 'Recap of Session 1 key concepts through a rapid flash-inquiry game.'
-            },
-            elicit: {
-              time: '10 mins',
-              activity: 'Targeted questioning examining theoretical nuances and structural models.',
-              expectedResponses: 'Learners articulate connections between conceptual definitions and practical scenarios.'
-            }
-          },
-          flow: {
-            explore: {
-              time: '25 mins',
-              groupActivity: {
-                formatType: 'Matrix Analysis & Venn Diagramming',
-                title: `Comparative Modeling: ${entry.topic}`,
-                instructions: 'Collaboratively chart the differences, relationships, and operational mechanisms using the provided structured template.'
-              },
-              individualOutput: {
-                outputType: 'Structured Problem Sheet',
-                title: 'Analytical Worksheet 2',
-                instructions: 'Answer the 3 diagnostic challenge questions independently with complete justifications.'
-              }
-            },
-            explain: {
-              time: '15 mins',
-              synthesisQuestions: [
-                'Which factors most significantly alter the outcome in this process?',
-                'How can we apply systematic methods to evaluate conflicting claims or data points?'
-              ]
-            }
-          },
-          learningResources: ['Case study cards', 'Interactive diagramming templates', 'DepEd Teacher Guide'],
-          opportunitiesForIntegration: [
-            { area: 'Digital Citizenship', connection: 'Evaluating source credibility and ethical citation.' }
-          ]
-        },
-        {
-          sessionNumber: 3,
-          sessionDate: sessionDateStrings[2] || 'Session 3',
-          preLesson: {
-            engage: {
-              time: '10 mins',
-              activity: 'Real-world dilemma or engineering/social challenge presentation.'
-            },
-            elicit: {
-              time: '10 mins',
-              activity: 'Brainstorming preliminary intervention strategies.',
-              expectedResponses: 'Proposed step-by-step methodologies to address community or technical needs.'
-            }
-          },
-          flow: {
-            explore: {
-              time: '25 mins',
-              groupActivity: {
-                formatType: 'Simulation & Workshop Practicum',
-                title: `Application Workshop: ${actualTitle}`,
-                instructions: 'Simulate the target process, draft actionable solutions, and critique peer prototypes against standard rubrics.'
-              },
-              individualOutput: {
-                outputType: 'Action Proposal / Solution Draft',
-                title: 'Individual Implementation Plan',
-                instructions: 'Formulate a written 3-step action roadmap detailing concrete steps, resources, and expected metrics.'
-              }
-            },
-            explain: {
-              time: '15 mins',
-              synthesisQuestions: [
-                'What challenges arose during collaborative problem-solving, and how were they resolved?',
-                'How can this solution be scaled or adapted to local community realities?'
-              ]
-            }
-          },
-          learningResources: ['Simulation materials', 'Rubric checklists', 'Field examples'],
-          opportunitiesForIntegration: [
-            { area: 'Community Action', connection: 'Aligning school learning with barangay or regional development objectives.' }
-          ]
-        },
-        {
-          sessionNumber: 4,
-          sessionDate: sessionDateStrings[3] || 'Session 4',
-          preLesson: {
-            engage: {
-              time: '10 mins',
-              activity: 'Gallery walk of student group artifacts and peer constructive feedback.'
-            },
-            elicit: {
-              time: '10 mins',
-              activity: 'Self-assessment check: Identifying remaining learning gaps before final evaluation.',
-              expectedResponses: 'Reflections on strengths, masteries, and areas requiring clarification.'
-            }
-          },
-          flow: {
-            explore: {
-              time: '25 mins',
-              groupActivity: {
-                formatType: 'Peer Review & Synthesis Circle',
-                title: 'Quality Verification & Defense',
-                instructions: 'Conduct structured peer audits using the official DepEd 4-criteria rubric.'
-              },
-              individualOutput: {
-                outputType: 'Summative Written Output & Reflection',
-                title: 'Mastery Assessment & Reflective Journal',
-                instructions: 'Complete the individual performance assessment task and write a 250-word synthesis of insights gained.'
-              }
-            },
-            explain: {
-              time: '15 mins',
-              synthesisQuestions: [
-                'How has your understanding of this topic evolved from Session 1 to Session 4?',
-                'What lifelong skills will you take forward into your future career and community roles?'
-              ]
-            }
-          },
-          learningResources: ['Final assessment sheets', 'Standardized grading rubric', 'Teacher reflection log'],
-          opportunitiesForIntegration: [
-            { area: 'Lifelong Learning', connection: 'Nurturing metacognitive awareness and personal accountability.' }
-          ]
-        }
-      ],
-      assessment: [1, 2, 3, 4].map(sNum => ({
-        sessionNumber: sNum,
-        sessionDate: sessionDateStrings[sNum - 1] || `Session ${sNum}`,
-        formativeTask: `Session ${sNum} Formative Check: Active completion of LAS ${sNum} tasks and rubric-scored output.`,
+        };
+      }),
+      assessment: Array.from({ length: sessionCount }, (_, i) => ({
+        sessionNumber: i + 1,
+        sessionDate: sessionDateStrings[i] || `Session ${i + 1}`,
+        formativeTask: `Session ${i + 1} Formative Check: Active completion of LAS ${i + 1} tasks and rubric-scored output.`,
         guidanceAndSupport: 'Provide step-by-step scaffolds, sentence starters, or worked-out examples for developing learners.',
         accommodations: 'Extend time limits by 10 minutes and offer bilingual Filipino/English prompts where beneficial.'
       })),
@@ -538,101 +420,171 @@ function createActivitySheetForSubject(
 
 function createSlidesForPlan(
   entry: ILAWBOWEntry,
-  title: string,
+  topic: string,
   teacher: string,
   school: string,
   sessionDates: string[]
 ): ILAWSlide[] {
-  return [
-    {
-      slideNumber: 1,
-      sessionNumber: 1,
-      type: 'title',
-      title: title,
-      subtitle: `${entry.subject} • ${entry.grade} • ${entry.term}`,
-      badge: 'ILAW MASTER CLASSROOM SLIDES',
-      bodyBullets: [
-        `School: ${school}`,
-        `Teacher-Developer: ${teacher}`,
-        `Curriculum Standard: DepEd Order No. 3, s. 2026`,
-        `Instructional Window: ${sessionDates[0] || 'Term Launch'}`
-      ],
-      speakerNotes: 'Welcome the class. Introduce the week-long learning intentions and explain the assessment criteria.'
-    },
-    {
-      slideNumber: 2,
-      sessionNumber: 1,
-      type: 'objective',
-      title: 'Our Learning Targets for Today',
-      subtitle: 'Session 1 Competencies & Targets',
-      badge: 'INTENTIONS',
-      bodyBullets: [
-        `Understand core principles of ${title}`,
-        'Analyze authentic local real-world scenarios',
-        'Collaborate productively in small teams',
-        'Complete Session 1 Learning Activity Sheet (LAS 1)'
-      ],
-      speakerNotes: 'Have students read the targets chorally or call on one student to read them aloud.'
-    },
-    {
-      slideNumber: 3,
-      sessionNumber: 1,
-      type: 'engage',
-      title: 'Engage & Provocation',
-      subtitle: 'What do you observe in this scenario?',
-      badge: 'PRE-LESSON: ENGAGE',
-      bodyBullets: [
-        'Examine the visual case presented on screen',
-        'Notice what works and what breaks down',
-        'Consider: Why does context matter?',
-        'Turn to your seatmate and share one initial thought'
-      ],
-      speakerNotes: 'Facilitate a 2-minute think-pair-share to stimulate curiosity.'
-    },
-    {
-      slideNumber: 4,
-      sessionNumber: 1,
-      type: 'explore',
-      title: 'Cluster Investigation: Part A',
-      subtitle: 'Collaborative Matrix Deconstruction',
-      badge: 'FLOW: EXPLORE',
-      bodyBullets: [
-        'Move into your assigned groups of 4 to 5',
-        'Open LAS 1: Part A (Group Investigation)',
-        'Assign roles: Leader, Scribe, Timekeeper, Presenter',
-        'Time allotment: 20 minutes of focused teamwork'
-      ],
-      speakerNotes: 'Circulate around the classroom, addressing questions and ensuring all learners are actively engaged.'
-    },
-    {
-      slideNumber: 5,
-      sessionNumber: 1,
-      type: 'explain',
-      title: 'Key Insights & Synthesis',
-      subtitle: 'Making Meaning from Evidence',
-      badge: 'FLOW: EXPLAIN',
-      bodyBullets: [
-        `Core Idea 1: ${entry.competency}`,
-        'Core Idea 2: Persona, timing, and place shape outcome',
-        'Core Idea 3: Systematic analysis avoids costly errors',
-        'Q&A: Ask questions before moving to individual tasks'
-      ],
-      speakerNotes: 'Highlight common patterns discovered across different student groups.'
-    },
-    {
-      slideNumber: 6,
-      sessionNumber: 1,
-      type: 'synthesis',
-      title: 'Individual Mastery & Wrap-Up',
-      subtitle: 'Completing Part B in Your Sheet',
-      badge: 'ASSESSMENT',
-      bodyBullets: [
-        'Work independently on Part B of LAS 1',
-        'Apply the standard rubric (Content, Clarity, Ethics)',
-        'Submit completed sheets to the class coordinator',
-        'Homework preview: Reflect on tomorrow’s inquiry'
-      ],
-      speakerNotes: 'Signal 5 minutes remaining. Collect papers and commend strong collaborative behavior.'
+  const slides: ILAWSlide[] = [];
+  const sessionCount = sessionDates.length;
+
+  // 1. Title Slide
+  slides.push({
+    slideNumber: 1,
+    sessionNumber: 1,
+    type: 'title',
+    title: topic,
+    subtitle: `${entry.subject} • ${entry.grade} • ${entry.term}`,
+    badge: 'ILAW MASTER CLASSROOM SLIDES',
+    bodyBullets: [
+      `School: ${school}`,
+      `Teacher-Developer: ${teacher}`,
+      `Curriculum Standard: DepEd Order No. 3, s. 2026`,
+      `Instructional Window: ${sessionDates[0] || 'Term Launch'}`
+    ],
+    speakerNotes: 'Welcome the class. Introduce the week-long learning intentions and explain the assessment criteria.'
+  });
+
+  // 2. Learning Objectives Slide
+  slides.push({
+    slideNumber: 2,
+    sessionNumber: 1,
+    type: 'objective',
+    title: 'Learning Targets',
+    subtitle: 'What we will achieve this week',
+    badge: 'INTENTIONS',
+    bodyBullets: [
+      `Understand: ${entry.learningCompetency.substring(0, 80)}...`,
+      'Analyze: Real-world applications and contextual cases',
+      'Execute: Collaborative workshops and individual mastery outputs',
+      'Apply: 21st Century Skills (Critical Thinking & Collaboration)'
+    ],
+    speakerNotes: 'Read the targets chorally. Emphasize the importance of the competency in their specific track.'
+  });
+
+  // Loop through sessions to create dynamic content
+  for (let sNum = 1; sNum <= sessionCount; sNum++) {
+    const sDate = sessionDates[sNum - 1] || `Session ${sNum}`;
+    
+    // Session Title Slide (except Session 1 which had the main title)
+    if (sNum > 1) {
+      slides.push({
+        slideNumber: slides.length + 1,
+        sessionNumber: sNum,
+        type: 'title',
+        title: `Session ${sNum}: ${sNum === sessionCount ? 'Final Mastery' : 'Deeping Mastery'}`,
+        subtitle: `${topic} • ${sDate}`,
+        badge: `ILAW SESSION ${sNum}`,
+        bodyBullets: [
+          `Target: ${sNum === sessionCount ? 'Summative Synthesis & Reflection' : 'Refining Analytical Models'}`,
+          'Review of previous session key concepts',
+          'Materials: LAS ' + sNum + ' and project tools'
+        ],
+        speakerNotes: `Start Session ${sNum}. Review progress from the previous session.`
+      });
     }
-  ];
+
+    // Elicit/Engage for each session
+    slides.push({
+      slideNumber: slides.length + 1,
+      sessionNumber: sNum,
+      type: 'engage',
+      title: sNum === 1 ? 'Recall & Activate' : 'Session Connection',
+      subtitle: sNum === 1 ? 'Connecting to prior knowledge' : 'Review and Bridge',
+      badge: `S${sNum}: ELICIT`,
+      bodyBullets: [
+        sNum === 1 ? `What comes to mind when you hear "${topic}"?` : `Recall the main insight from Session ${sNum - 1}.`,
+        'Share your thoughts with your cluster.',
+        'How does this relate to your specific track/specialization?'
+      ],
+      speakerNotes: 'Brief activation activity.'
+    });
+
+    // Explore (Group Task)
+    slides.push({
+      slideNumber: slides.length + 1,
+      sessionNumber: sNum,
+      type: 'explore',
+      title: 'Cluster Investigation',
+      subtitle: 'Collaborative Inquiry Phase',
+      badge: `S${sNum}: EXPLORE`,
+      bodyBullets: [
+        `Refer to LAS ${sNum}: Part A (Collaborative Task).`,
+        'Work with your assigned team members.',
+        'Apply the standard analytical matrix provided.',
+        '20 minutes for investigation.'
+      ],
+      speakerNotes: 'Facilitate group work.'
+    });
+
+    // Explain (Direct Instruction)
+    slides.push({
+      slideNumber: slides.length + 1,
+      sessionNumber: sNum,
+      type: 'explain',
+      title: 'Concept Deep Dive',
+      subtitle: 'Theoretical Foundations',
+      badge: `S${sNum}: EXPLAIN`,
+      bodyBullets: [
+        `Key Principle: ${sNum === 1 ? 'Foundational Definitions' : 'Advanced Applications'}`,
+        'Understanding the causal relationships',
+        'Bridging theory to industrial standards',
+        'Answering synthesis questions on LAS ' + sNum
+      ],
+      speakerNotes: 'Explain the core logic of the session.'
+    });
+
+    // Integration Slide (every session)
+    slides.push({
+      slideNumber: slides.length + 1,
+      sessionNumber: sNum,
+      type: 'explain',
+      title: 'Professional Linkage',
+      subtitle: 'Track & Career Integration',
+      badge: `S${sNum}: INTEGRATION`,
+      bodyBullets: [
+        'How this skill is used in the workplace',
+        'DepEd NC II/III Alignment (where applicable)',
+        'Standards of professional ethics',
+        'Preparing for the 21st-century labor market'
+      ],
+      speakerNotes: 'Make it relevant to their future.'
+    });
+
+    // Synthesis/Individual Task
+    slides.push({
+      slideNumber: slides.length + 1,
+      sessionNumber: sNum,
+      type: 'synthesis',
+      title: 'Individual Synthesis',
+      subtitle: 'Mastering the Session Output',
+      badge: `S${sNum}: ELABORATE`,
+      bodyBullets: [
+        `Complete LAS ${sNum}: Part B (Individual Task).`,
+        'Apply the 4-Criteria Rubric.',
+        'Document your personal insights and findings.',
+        'Prepare for peer verification.'
+      ],
+      speakerNotes: 'Ensure everyone finishes their individual tasks.'
+    });
+  }
+
+  // Final Wrap-up Slide
+  slides.push({
+    slideNumber: slides.length + 1,
+    sessionNumber: sessionCount,
+    type: 'synthesis',
+    title: 'Weekly Wrap-Up',
+    subtitle: 'From Awareness to Mastery',
+    badge: 'WRAP-UP',
+    bodyBullets: [
+      'Recap of the Week\'s Learning Journey',
+      'Submission of all 4/5 Learning Activity Sheets',
+      'Preparation for next week\'s BOW competency',
+      'Exit Ticket: The most important lesson learned'
+    ],
+    speakerNotes: 'Close the week. Celebrate their achievements.'
+  });
+
+  return slides;
 }

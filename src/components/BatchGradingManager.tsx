@@ -60,7 +60,7 @@ interface BatchGradingManagerProps {
   onNavigateToReviewQueue?: () => void;
 }
 
-export const BatchGradingManager: React.FC<BatchGradingManagerProps> = ({
+export const BatchGradingManager: React.FC<BatchGradingManagerProps> = React.memo(({
   activeKey,
   batchStudents,
   setBatchStudents,
@@ -81,11 +81,37 @@ export const BatchGradingManager: React.FC<BatchGradingManagerProps> = ({
   const [selectedIds, setSelectedIds] = useState<string[]>(
     batchStudents.map(s => s.id)
   );
+  const [selectedSectionFilter, setSelectedSectionFilter] = useState<string>('all');
+  const [itemAnalysisFilter, setItemAnalysisFilter] = useState<'all' | 'mastered' | 'reinforce' | 'reteach'>('all');
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [exportSuccess, setExportSuccess] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showConfigSettings, setShowConfigSettings] = useState<boolean>(false);
   const [previewStudentSlip, setPreviewStudentSlip] = useState<BatchStudentGradeEntry | null>(null);
+
+  // --- AI Smart Suggestions States ---
+  const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
+  const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
+
+  const generateAISuggestions = async () => {
+    if (batchStudents.length === 0) return;
+    setIsGeneratingSuggestions(true);
+    try {
+      const response = await fetch('/api/gemini/pedagogical-suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batchData: batchStudents, answerKey: activeKey })
+      });
+      const data = await response.json();
+      if (data.success && data.data.suggestions) {
+        setAiSuggestions(data.data.suggestions);
+      }
+    } catch (error) {
+      console.error('Error fetching AI suggestions:', error);
+    } finally {
+      setIsGeneratingSuggestions(false);
+    }
+  };
 
   // --- Google Drive Auto-Save States ---
   const [autoSyncGradingToDrive, setAutoSyncGradingToDrive] = useState<boolean>(() => {
@@ -393,11 +419,50 @@ export const BatchGradingManager: React.FC<BatchGradingManagerProps> = ({
   const highestScore = totalCount > 0 ? Math.max(...rawScores) : 0;
   const lowestScore = totalCount > 0 ? Math.min(...rawScores) : 0;
 
-  // Filtered by search
-  const filteredStudents = batchStudents.filter(s => 
-    s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    s.id.includes(searchQuery)
-  );
+  // Unique sections across batch students
+  const availableSections = React.useMemo(() => {
+    const set = new Set<string>();
+    batchStudents.forEach(s => {
+      if (s.section) set.add(s.section);
+    });
+    return Array.from(set).sort();
+  }, [batchStudents]);
+
+  // Filtered by section and search
+  const filteredStudents = batchStudents.filter(s => {
+    if (selectedSectionFilter !== 'all' && s.section !== selectedSectionFilter) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchesName = s.name.toLowerCase().includes(q);
+      const matchesId = s.id.includes(q);
+      const matchesSection = s.section.toLowerCase().includes(q);
+      if (!matchesName && !matchesId && !matchesSection) return false;
+    }
+    return true;
+  });
+
+  // Export selected students CSV
+  const handleExportSelectedCsv = () => {
+    const studentsToExport = batchStudents.filter(s => selectedIds.includes(s.id));
+    if (studentsToExport.length === 0) {
+      alert('Please select at least 1 student to export CSV.');
+      return;
+    }
+    let csv = `LRN/ID,Student Name,Section,Grade,Raw Score,Total Points,Percentage,DepEd Transmuted Grade,Mastery Descriptor\n`;
+    studentsToExport.forEach(s => {
+      csv += `"${s.id}","${s.name}","${s.section}","${s.grade}",${s.gradingResult.score},${s.gradingResult.totalPoints},${s.gradingResult.percentage}%,${s.gradingResult.depedTransmutedGrade},"${s.gradingResult.masteryLevel}"\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Selected_Students_Grades_${activeKey.title.replace(/\s+/g, '_')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setExportSuccess(`✓ Exported CSV for ${studentsToExport.length} selected learners!`);
+    setTimeout(() => setExportSuccess(null), 4000);
+  };
 
   // Unreviewed low confidence items across batch queue
   const unreviewedCount = batchStudents.reduce((acc, st) => {
@@ -789,14 +854,174 @@ export const BatchGradingManager: React.FC<BatchGradingManagerProps> = ({
           </div>
         </div>
 
+        {/* Pedagogical Smart Action Center (The Three Key Suggestions) */}
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-indigo-600" />
+            <span>Pedagogical Smart Action Center</span>
+          </h3>
+          <button 
+            onClick={generateAISuggestions}
+            disabled={isGeneratingSuggestions || batchStudents.length === 0}
+            className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white rounded-xl text-[10px] font-black transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+          >
+            {isGeneratingSuggestions ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+            <span>{aiSuggestions.length > 0 ? 'Refresh AI Insights' : 'Generate AI Pedagogical Insights'}</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {aiSuggestions.length > 0 ? (
+            aiSuggestions.map((suggestion, idx) => (
+              <div key={idx} className={`border rounded-2xl p-4 flex flex-col justify-between shadow-xs transition-all hover:shadow-md ${
+                suggestion.type === 'Quality Assurance' ? 'bg-indigo-50 border-indigo-100' :
+                suggestion.type === 'Instructional Focus' ? 'bg-amber-50 border-amber-100' :
+                suggestion.type === 'Classroom Management' ? 'bg-emerald-50 border-emerald-100' :
+                'bg-slate-50 border-slate-100'
+              }`}>
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className={`w-6 h-6 rounded-lg text-white flex items-center justify-center ${
+                      suggestion.type === 'Quality Assurance' ? 'bg-indigo-600' :
+                      suggestion.type === 'Instructional Focus' ? 'bg-amber-500' :
+                      suggestion.type === 'Classroom Management' ? 'bg-emerald-600' :
+                      'bg-slate-600'
+                    }`}>
+                      {suggestion.type === 'Quality Assurance' ? <ShieldCheck className="w-3.5 h-3.5" /> : 
+                       suggestion.type === 'Instructional Focus' ? <AlertTriangle className="w-3.5 h-3.5" /> :
+                       suggestion.type === 'Classroom Management' ? <Users className="w-3.5 h-3.5" /> :
+                       <CheckCircle className="w-3.5 h-3.5" />}
+                    </div>
+                    <span className={`text-[10px] font-black uppercase tracking-wider ${
+                      suggestion.type === 'Quality Assurance' ? 'text-indigo-900' :
+                      suggestion.type === 'Instructional Focus' ? 'text-amber-900' :
+                      suggestion.type === 'Classroom Management' ? 'text-emerald-900' :
+                      'text-slate-900'
+                    }`}>{suggestion.type}: {suggestion.priority} Priority</span>
+                  </div>
+                  <h4 className="text-xs font-black text-slate-800 mb-1">{suggestion.title}</h4>
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    {suggestion.description}
+                  </p>
+                  <div className="mt-2 p-2 bg-white/50 rounded-lg border border-black/5 text-[10px] italic text-slate-500">
+                    <strong>Action:</strong> {suggestion.action}
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <>
+              <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex flex-col justify-between shadow-xs">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="text-[10px] font-black text-indigo-900 uppercase tracking-wider">Suggestion 1: Quality Assurance</span>
+                  </div>
+                  <h4 className="text-xs font-black text-slate-800 mb-1">Audit Ambiguous Handwriting</h4>
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    There are <strong>{unreviewedCount} low-confidence items</strong>. Review these to ensure accuracy before final printing.
+                  </p>
+                </div>
+                <button 
+                  onClick={() => onNavigateToReviewQueue?.()}
+                  className="mt-3 text-[10px] font-black text-indigo-700 hover:text-indigo-900 flex items-center gap-1 cursor-pointer"
+                >
+                  Start Review →
+                </button>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex flex-col justify-between shadow-xs">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="text-[10px] font-black text-amber-900 uppercase tracking-wider">Suggestion 2: Instructional Focus</span>
+                  </div>
+                  <h4 className="text-xs font-black text-slate-800 mb-1">Reteach Critical Gaps</h4>
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    <strong>{activeKey.items.filter(it => {
+                      let correct = 0;
+                      activeList.forEach(s => {
+                        if (s.gradingResult.itemComparisons.find(item => item.itemNumber === it.itemNumber)?.isCorrect) correct++;
+                      });
+                      return totalCount > 0 && (correct / totalCount) < 0.6;
+                    }).length} items</strong> have less than 60% mastery. These competencies require immediate remediation.
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setItemAnalysisFilter('reteach')}
+                  className="mt-3 text-[10px] font-black text-amber-700 hover:text-amber-900 flex items-center gap-1 cursor-pointer"
+                >
+                  View Gaps →
+                </button>
+              </div>
+
+              <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex flex-col justify-between shadow-xs">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center">
+                      <CheckCircle className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="text-[10px] font-black text-emerald-900 uppercase tracking-wider">Suggestion 3: Peer Tutoring</span>
+                  </div>
+                  <h4 className="text-xs font-black text-slate-800 mb-1">Leverage High Performers</h4>
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    <strong>{activeList.filter(s => s.gradingResult.depedTransmutedGrade >= 90).length} learners</strong> achieved Outstanding mastery. Consider grouping them with students in the 'Satisfactory' band.
+                  </p>
+                </div>
+                <button 
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedSectionFilter('all');
+                  }}
+                  className="mt-3 text-[10px] font-black text-emerald-700 hover:text-emerald-900 flex items-center gap-1 cursor-pointer"
+                >
+                  View Roster →
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
         {/* Item Analysis Matrix Preview */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">
-              Diagnostic Item Analysis (Diagnostic Error Frequency):
-            </h4>
+            <div className="flex items-center gap-3">
+              <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                Diagnostic Item Analysis:
+              </h4>
+              <div className="flex items-center p-0.5 bg-slate-100 rounded-xl text-[10px] font-bold">
+                <button
+                  onClick={() => setItemAnalysisFilter('all')}
+                  className={`px-2 py-1 rounded-lg transition cursor-pointer ${itemAnalysisFilter === 'all' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  All Items
+                </button>
+                <button
+                  onClick={() => setItemAnalysisFilter('reteach')}
+                  className={`px-2 py-1 rounded-lg transition cursor-pointer ${itemAnalysisFilter === 'reteach' ? 'bg-red-500 text-white shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  Needs Reteaching
+                </button>
+                <button
+                  onClick={() => setItemAnalysisFilter('reinforce')}
+                  className={`px-2 py-1 rounded-lg transition cursor-pointer ${itemAnalysisFilter === 'reinforce' ? 'bg-amber-500 text-white shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  Reinforce
+                </button>
+                <button
+                  onClick={() => setItemAnalysisFilter('mastered')}
+                  className={`px-2 py-1 rounded-lg transition cursor-pointer ${itemAnalysisFilter === 'mastered' ? 'bg-emerald-500 text-white shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  Mastered
+                </button>
+              </div>
+            </div>
             <span className="text-[11px] text-slate-500">
-              Evaluated against Answer Key: <strong>{activeKey.title}</strong>
+              Evaluated against: <strong>{activeKey.title}</strong>
             </span>
           </div>
 
@@ -815,36 +1040,48 @@ export const BatchGradingManager: React.FC<BatchGradingManagerProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
-                  {activeKey.items.map((it) => {
-                    let correctCount = 0;
-                    activeList.forEach(s => {
-                      const match = s.gradingResult.itemComparisons.find(item => item.itemNumber === it.itemNumber);
-                      if (match?.isCorrect) correctCount++;
-                    });
-                    const errorCount = totalCount - correctCount;
-                    const masteryPct = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
-                    
-                    return (
-                      <tr key={it.itemNumber} className="hover:bg-slate-50 transition">
-                        <td className="p-2.5 text-center font-mono font-bold text-slate-800">{it.itemNumber}</td>
-                        <td className="p-2.5 font-medium text-slate-800">{it.question || `Item ${it.itemNumber}`}</td>
-                        <td className="p-2.5 text-center font-mono font-bold text-blue-900 bg-blue-50/50">{it.correctAnswer}</td>
-                        <td className="p-2.5 text-center font-mono font-bold text-emerald-700">{correctCount}</td>
-                        <td className="p-2.5 text-center font-mono font-bold text-red-600">{errorCount}</td>
-                        <td className="p-2.5 text-center">
-                          <span className={`px-2 py-0.5 rounded font-mono font-bold text-[10px] ${
-                            masteryPct >= 80 ? 'bg-emerald-100 text-emerald-800' :
-                            masteryPct >= 60 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
-                          }`}>
-                            {masteryPct}%
-                          </span>
-                        </td>
-                        <td className="p-2.5 text-[11px] text-slate-600">
-                          {masteryPct >= 80 ? '✓ Standard Mastered' : masteryPct >= 60 ? '⚡ Reinforce in next lesson' : '⚠️ Immediate Reteaching Needed'}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {activeKey.items
+                    .filter(it => {
+                      let correct = 0;
+                      activeList.forEach(s => {
+                        if (s.gradingResult.itemComparisons.find(item => item.itemNumber === it.itemNumber)?.isCorrect) correct++;
+                      });
+                      const mastery = totalCount > 0 ? (correct / totalCount) * 100 : 0;
+                      if (itemAnalysisFilter === 'reteach') return mastery < 60;
+                      if (itemAnalysisFilter === 'reinforce') return mastery >= 60 && mastery < 80;
+                      if (itemAnalysisFilter === 'mastered') return mastery >= 80;
+                      return true;
+                    })
+                    .map((it) => {
+                      let correctCount = 0;
+                      activeList.forEach(s => {
+                        const match = s.gradingResult.itemComparisons.find(item => item.itemNumber === it.itemNumber);
+                        if (match?.isCorrect) correctCount++;
+                      });
+                      const errorCount = totalCount - correctCount;
+                      const masteryPct = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
+                      
+                      return (
+                        <tr key={it.itemNumber} className="hover:bg-slate-50 transition">
+                          <td className="p-2.5 text-center font-mono font-bold text-slate-800">{it.itemNumber}</td>
+                          <td className="p-2.5 font-medium text-slate-800">{it.question || `Item ${it.itemNumber}`}</td>
+                          <td className="p-2.5 text-center font-mono font-bold text-blue-900 bg-blue-50/50">{it.correctAnswer}</td>
+                          <td className="p-2.5 text-center font-mono font-bold text-emerald-700">{correctCount}</td>
+                          <td className="p-2.5 text-center font-mono font-bold text-red-600">{errorCount}</td>
+                          <td className="p-2.5 text-center">
+                            <span className={`px-2 py-0.5 rounded font-mono font-bold text-[10px] ${
+                              masteryPct >= 80 ? 'bg-emerald-100 text-emerald-800' :
+                              masteryPct >= 60 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {masteryPct}%
+                            </span>
+                          </td>
+                          <td className="p-2.5 text-[11px] text-slate-600">
+                            {masteryPct >= 80 ? '✓ Standard Mastered' : masteryPct >= 60 ? '⚡ Reinforce in next lesson' : '⚠️ Immediate Reteaching Needed'}
+                          </td>
+                        </tr>
+                      );
+                    })}
                 </tbody>
               </table>
             </div>
@@ -866,6 +1103,21 @@ export const BatchGradingManager: React.FC<BatchGradingManagerProps> = ({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Section Filter Dropdown */}
+            <div className="relative">
+              <select
+                value={selectedSectionFilter}
+                onChange={(e) => setSelectedSectionFilter(e.target.value)}
+                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer"
+                title="Filter roster by section"
+              >
+                <option value="all">All Sections ({availableSections.length})</option>
+                {availableSections.map(sec => (
+                  <option key={sec} value={sec}>{sec}</option>
+                ))}
+              </select>
+            </div>
+
             <div className="relative">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
               <input
@@ -882,6 +1134,26 @@ export const BatchGradingManager: React.FC<BatchGradingManagerProps> = ({
               className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
             >
               {selectedIds.length === batchStudents.length ? 'Deselect All' : 'Select All'}
+            </button>
+
+            <button
+              onClick={handleExportBatchPdf}
+              disabled={activeList.length === 0}
+              className="px-3 py-1.5 bg-blue-900 hover:bg-blue-950 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-2xs"
+              title="Export PDF for currently checked students"
+            >
+              <Download className="w-3.5 h-3.5 text-[#FCD116]" />
+              <span>Export Selected PDF ({activeList.length})</span>
+            </button>
+
+            <button
+              onClick={handleExportSelectedCsv}
+              disabled={activeList.length === 0}
+              className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-2xs"
+              title="Export CSV for currently checked students"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Export Selected CSV</span>
             </button>
 
             <button
@@ -1183,4 +1455,4 @@ export const BatchGradingManager: React.FC<BatchGradingManagerProps> = ({
 
     </div>
   );
-};
+});

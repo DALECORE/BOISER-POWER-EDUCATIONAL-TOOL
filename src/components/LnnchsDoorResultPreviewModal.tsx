@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { exportILAWToPptx } from '../utils/depedPptxExporter';
 import { exportLnnchsSFToExcel, exportLnnchsSFToWord, exportLnnchsSFToPdf, LNNCHS_DEFAULT_CONFIG } from '../utils/lnnchsSchoolFormsExporter';
+import { DepEdLdnOlsStatusIndicator } from './DepEdLdnOlsStatusIndicator';
 
 export interface PreviewItemData {
   id?: string;
@@ -92,10 +93,10 @@ export const LnnchsDoorResultPreviewModal: React.FC<DoorPreviewModalProps> = ({
 
   // Mock Excel Data Preview
   const excelData = [
-    { lrn: '10982347101', name: 'Abadia, Christian Mark', sex: 'M', term1: 92.5, term2: 94.0, gwa: '93.3 (Passed)' },
-    { lrn: '10982347102', name: 'Alvarez, Sophia Marie', sex: 'F', term1: 95.0, term2: 96.5, gwa: '95.8 (Passed)' },
-    { lrn: '10982347103', name: 'Boiser, Steaven Kinth', sex: 'M', term1: 98.0, term2: 99.0, gwa: '98.5 (Mastery)' },
-    { lrn: '10982347104', name: 'Caballero, Mark Anthony', sex: 'M', term1: 90.0, term2: 91.5, gwa: '90.8 (Passed)' }
+    { lrn: '10982347101', name: 'Abadia, Christian Mark', sex: 'M', term1: 92.5, term2: 0, gwa: '92.5 (Passed)' },
+    { lrn: '10982347102', name: 'Alvarez, Sophia Marie', sex: 'F', term1: 95.0, term2: 0, gwa: '95.0 (Passed)' },
+    { lrn: '10982347103', name: 'Boiser, Steaven Kinth', sex: 'M', term1: 98.0, term2: 0, gwa: '98.0 (Mastery)' },
+    { lrn: '10982347104', name: 'Caballero, Mark Anthony', sex: 'M', term1: 90.0, term2: 0, gwa: '90.0 (Passed)' }
   ];
 
   // Handle PPT Export
@@ -272,6 +273,17 @@ export const LnnchsDoorResultPreviewModal: React.FC<DoorPreviewModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            {/* DepEd LDN OLS Leave Indicator — EXCLUSIVELY FOR SHS FACULTY (GRADE 11 & 12) */}
+            {(String(displayGrade).includes('11') || String(displayGrade).includes('12') || String(displayGrade).toLowerCase().includes('shs')) && (
+              <DepEdLdnOlsStatusIndicator
+                teacherName={displayAdviser}
+                isShsTeacher={true}
+                position="Senior High School Faculty"
+                advisoryClass={`${displayGrade} - ${displaySection}`}
+                compact={true}
+              />
+            )}
+
             {/* Quick Direct Download Toolbar */}
             <div className="flex items-center gap-1.5 bg-black/40 p-1.5 rounded-2xl border border-white/10">
               <button

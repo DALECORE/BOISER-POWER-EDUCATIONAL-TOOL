@@ -49,7 +49,7 @@ export const DEFAULT_BATCH_CONFIG: BatchGradingExportConfig = {
   schoolYear: '2026-2027',
   teacherName: 'Steaven Kinth D. Boiser, T-III',
   departmentHead: 'Marites B. Alonto, Master Teacher II',
-  principalName: 'Anisah A. Sinal, Principal IV',
+  principalName: 'ANISAH A. SINAL, PRINCIPAL III',
   dateEvaluated: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
   students: []
 };
@@ -112,7 +112,7 @@ export function exportBatchGradingToPdf(config: BatchGradingExportConfig) {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(slateMuted[0], slateMuted[1], slateMuted[2]);
-  doc.text(`School ID: ${config.schoolId || '304015'} • ${config.district || 'Tubod Central District'} • SY ${config.schoolYear || '2026-2027'}`, pageWidth / 2, curY, { align: 'center' });
+  doc.text(`School ID: ${config.schoolId || '304005'} • ${config.district || 'Baroy District'} • SY ${config.schoolYear || '2026-2027'}`, pageWidth / 2, curY, { align: 'center' });
   curY += 5;
 
   // 2. Dashboard Title Banner
@@ -504,7 +504,7 @@ export function exportBatchGradingToPdf(config: BatchGradingExportConfig) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(slateMuted[0], slateMuted[1], slateMuted[2]);
-    doc.text(`School ID: ${config.schoolId || '304015'} • ${config.district || 'Tubod Central District'} • SY ${config.schoolYear || '2026-2027'}`, pageWidth / 2, pY, { align: 'center' });
+    doc.text(`School ID: ${config.schoolId || '304005'} • ${config.district || 'Baroy District'} • SY ${config.schoolYear || '2026-2027'}`, pageWidth / 2, pY, { align: 'center' });
     pY += 4.5;
 
     // 2. Individual Slip Header Banner
@@ -777,7 +777,7 @@ export function exportBatchGradingToPdf(config: BatchGradingExportConfig) {
     // Page Footer
     doc.setFontSize(5.5);
     doc.setTextColor(slateMuted[0], slateMuted[1], slateMuted[2]);
-    doc.text(`Page ${sIdx + 2} of ${config.students.length + 1} • Official Student Result Slip • ${student.name} (${student.id}) • LNNCHS School ID: ${config.schoolId || '304015'}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
+    doc.text(`Page ${sIdx + 2} of ${config.students.length + 1} • Official Student Result Slip • ${student.name} (${student.id}) • LNNCHS School ID: ${config.schoolId || '304005'}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
   });
 
   // Save the consolidated PDF

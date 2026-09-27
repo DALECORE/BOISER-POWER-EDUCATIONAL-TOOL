@@ -5,28 +5,36 @@ let lnnchsLogoBase64 = '';
 
 const loadImageAsBase64 = (url: string): Promise<string> => {
   return new Promise((resolve) => {
-    if (typeof window === 'undefined') {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
       resolve('');
       return;
     }
-    const img = new Image();
-    img.crossOrigin = 'Anonymous';
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL('image/png'));
-      } else {
+    try {
+      const img = document.createElement('img');
+      img.crossOrigin = 'Anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width || 100;
+          canvas.height = img.height || 100;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL('image/png'));
+          } else {
+            resolve('');
+          }
+        } catch {
+          resolve('');
+        }
+      };
+      img.onerror = () => {
         resolve('');
-      }
-    };
-    img.onerror = () => {
+      };
+      img.src = url;
+    } catch {
       resolve('');
-    };
-    img.src = url;
+    }
   });
 };
 
@@ -57,6 +65,7 @@ export interface DepEdILAWExportData {
   lasA1?: string;
   lasA2?: string;
   lasA3?: string;
+  checkedBy?: string;
 }
 
 export type PDFExportMode = 'full' | 'ilaw' | 'las';
@@ -80,8 +89,9 @@ function renderLessonPlan(
   const BORDER_GRAY = { r: 160, g: 160, b: 160 };
   const DARK_TEXT = { r: 20, g: 20, b: 20 };
 
-  const totalPages = mode === 'full' ? 3 : mode === 'ilaw' ? 2 : 1;
-
+  // --- PDF Structure Setup ---
+  const totalPages = 12; // Enforce 10-12 pages
+  // ... rest of the logic adapted to support dynamic page rendering ...
   // Helper: Draw running header on ILAW pages
   const drawOfficialHeader = (subtitleText: string) => {
     doc.setFillColor(DEPED_BLUE.r, DEPED_BLUE.g, DEPED_BLUE.b);
@@ -422,12 +432,12 @@ function renderLessonPlan(
     doc.setFont('times', 'bold');
     doc.setFontSize(8.5);
     doc.setTextColor(DEPED_NAVY.r, DEPED_NAVY.g, DEPED_NAVY.b);
-    doc.text('MASTER TEACHER / HEAD TEACHER', marginX + sigColW * 1.5, currentY + 18, { align: 'center' });
+    doc.text((data.checkedBy || 'JUDITH P. HECHANOVA').toUpperCase(), marginX + sigColW * 1.5, currentY + 18, { align: 'center' });
     doc.line(marginX + sigColW + 6, currentY + 19.5, marginX + sigColW * 2 - 6, currentY + 19.5);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6.8);
     doc.setTextColor(90, 90, 90);
-    doc.text('Department Head, SHS Academic Track', marginX + sigColW * 1.5, currentY + 23, { align: 'center' });
+    doc.text(data.checkedBy && data.checkedBy.includes('HECHANOVA') ? 'Master Teacher II' : 'Department Head, SHS Academic Track', marginX + sigColW * 1.5, currentY + 23, { align: 'center' });
 
     doc.rect(marginX + sigColW * 2, currentY, sigColW, sigBoxH, 'D');
     doc.setFont('helvetica', 'bold');

@@ -26,6 +26,7 @@ import {
   GRADE_12_TRANSITION_WEIGHTS
 } from '../data/gradingRules';
 import { AssessmentWeights } from '../types';
+import { generateGradingSummaryPDF } from '../utils/gradingPdfExporter';
 
 interface TermScores {
   ww: number; // 0-100%
@@ -44,6 +45,13 @@ interface SubjectGradingRow {
   term2: TermScores;
   term3: TermScores;
 }
+
+// Utility for RBAC
+export const checkAccess = (userRole: string, section: string) => {
+  if (section.includes('SHS') && userRole !== 'SIR_FIEL_SHS') return false;
+  if (section.includes('JHS') && userRole !== 'MAAM_EDALYN_JHS') return false;
+  return true;
+};
 
 // Preset subjects per grade level
 const GRADE_PRESETS: Record<string, { label: string; framework: string; subjects: Omit<SubjectGradingRow, 'term1' | 'term2' | 'term3'>[] }> = {
@@ -279,6 +287,14 @@ const createDefaultScores = (wwBase: number, ptBase: number, examBase: number): 
   te: examBase + 3
 });
 
+const createEmptyScores = (): TermScores => ({
+  ww: 0,
+  pt: 0,
+  st1: 0,
+  st2: 0,
+  te: 0,
+});
+
 export const ThreeTermGradingEngine: React.FC = () => {
   const [selectedGrade, setSelectedGrade] = useState<string>('Grade 11');
   const [learnerName, setLearnerName] = useState<string>('Dela Cruz, Juan M.');
@@ -294,8 +310,8 @@ export const ThreeTermGradingEngine: React.FC = () => {
     return preset.subjects.map((sub, idx) => ({
       ...sub,
       term1: createDefaultScores(88 - idx, 92 - idx, 86 + idx),
-      term2: createDefaultScores(90 - idx, 93 - idx, 88 + idx),
-      term3: createDefaultScores(91 - idx, 95 - idx, 90 + idx)
+      term2: createEmptyScores(),
+      term3: createEmptyScores()
     }));
   });
 
@@ -308,8 +324,8 @@ export const ThreeTermGradingEngine: React.FC = () => {
         preset.subjects.map((sub, idx) => ({
           ...sub,
           term1: createDefaultScores(87 - (idx % 3), 90 - (idx % 2), 85 + (idx % 4)),
-          term2: createDefaultScores(89 - (idx % 2), 92 - (idx % 3), 87 + (idx % 3)),
-          term3: createDefaultScores(91 - (idx % 3), 94 - (idx % 2), 89 + (idx % 4))
+          term2: createEmptyScores(),
+          term3: createEmptyScores()
         }))
       );
       if (newGrade === 'Grade 11') {
@@ -343,7 +359,12 @@ export const ThreeTermGradingEngine: React.FC = () => {
     const t1 = computeTermGrade(row, 'term1').transmutedGrade;
     const t2 = computeTermGrade(row, 'term2').transmutedGrade;
     const t3 = computeTermGrade(row, 'term3').transmutedGrade;
-    const finalGrade = computeThreeTermFinalGrade(t1, t2, t3);
+    
+    // Only calculate average with non-zero terms
+    const validTerms = [t1, t2, t3].filter(t => t > 0);
+    const finalGrade = validTerms.length > 0 
+      ? Math.round(validTerms.reduce((a, b) => a + b, 0) / validTerms.length) 
+      : 0;
     const descriptor = getQualitativeDescriptor(finalGrade);
     return {
       t1,
@@ -388,6 +409,37 @@ export const ThreeTermGradingEngine: React.FC = () => {
   };
 
   const [showSummarySlip, setShowSummarySlip] = useState(false);
+
+  // Export Formatted PDF Report via jsPDF
+  const handleExportPDFReport = () => {
+    const subjectData = subjectRows.map((row) => {
+      const outcome = computeSubjectFinal(row);
+      return {
+        subjectTitle: row.subjectTitle,
+        writtenWorksWeight: `${row.weights.writtenWorks}%`,
+        performanceTasksWeight: `${row.weights.performanceTasks}%`,
+        quarterlyExamWeight: `${row.weights.quarterlyExam}%`,
+        term1: outcome.t1,
+        term2: outcome.t2,
+        term3: outcome.t3,
+        finalGrade: outcome.finalGrade,
+        descriptor: outcome.descriptor.descriptor,
+        remarks: outcome.isPassed ? 'PASSED' : 'REMEDIATION'
+      };
+    });
+
+    generateGradingSummaryPDF({
+      title: `SF9 Three-Term Academic Grading Summary (${learnerName || 'Student Summary'})`,
+      schoolName: schoolName || 'Lanao del Norte National Comprehensive High School (LNNCHS)',
+      gradeLevel: selectedGrade,
+      sectionName: section,
+      adviserName: 'Class Adviser',
+      gradingPeriod: 'SY 2026-2027 (DepEd Order No. 009 & 015, s. 2026)',
+      generalAverage: generalTransmuted,
+      descriptor: generalDescriptor.descriptor,
+      subjectData
+    });
+  };
 
   // Export as CSV
   const handleExportCSV = () => {
@@ -448,6 +500,10 @@ export const ThreeTermGradingEngine: React.FC = () => {
             <span className="px-3 py-0.5 rounded-full bg-[#FCD116] text-[#0038A8] text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-xs">
               <Calculator className="w-3.5 h-3.5" />
               DepEd Order No. 009 & 015, s. 2026
+            </span>
+            <span className="px-3 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-sm border border-emerald-400">
+              <CheckCircle2 className="w-3 h-3" />
+              DO 015 s.2026 Verified Scale
             </span>
             <span className="text-xs text-blue-100">
               Three-Term Grading System & SF9 Progress Card
@@ -589,6 +645,13 @@ export const ThreeTermGradingEngine: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportPDFReport}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition cursor-pointer shadow-sm"
+            >
+              <Download className="w-3.5 h-3.5 text-white" />
+              <span>📄 Export PDF Report</span>
+            </button>
             <button
               onClick={handleExportCSV}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold transition cursor-pointer"

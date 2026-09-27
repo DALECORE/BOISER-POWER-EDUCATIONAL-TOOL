@@ -1,5 +1,24 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { isUserCurrentlyLockedOut } from '../services/securityAlertService';
+import { googleSignIn, logout as googleSignOut, initAuth as initGoogleAuth } from '../lib/googleAuth';
+import type { User as FirebaseUser } from 'firebase/auth';
+import { useFirebase } from './FirebaseContext';
+import { db, auth as firebaseAuth } from '../lib/firebase';
+import { 
+  collection, 
+  query, 
+  where, 
+  orderBy, 
+  limit, 
+  onSnapshot, 
+  addDoc, 
+  serverTimestamp, 
+  setDoc, 
+  doc, 
+  getDocs,
+  deleteDoc
+} from 'firebase/firestore';
+import { saveDocument, removeDocument, handleFirestoreError, OperationType } from '../lib/firestore';
 
 export type UserRole = 'owner' | 'user';
 
@@ -14,6 +33,8 @@ export interface UserAccount {
   avatarUrl?: string;
   isActivated?: boolean;
   isBlocked?: boolean;
+  isShs?: boolean; // New field for level segregation
+  isRegistrar?: boolean; // New field for LIS management
   loginAttempts?: number;
   biometricId?: string; // For WebAuthn
   requestHelp?: boolean;
@@ -74,11 +95,16 @@ export interface AppNotification {
 
 interface AuthContextType {
   currentUser: UserAccount;
+  user: FirebaseUser | null;
+  isGoogleConnected: boolean;
+  googleAccessToken: string | null;
+  connectGoogle: () => Promise<void>;
+  disconnectGoogle: () => Promise<void>;
   isOwner: boolean;
   isAuthenticated: boolean;
   activityLogs: ActivityLogItem[];
   securityAlerts: SecurityAlert[];
-  logActivity: (feature: string, action: string, details?: string) => void;
+  logActivity: (feature: string, action: string, details?: string) => Promise<void>;
   switchRole: (role: UserRole) => void;
   loginTeacherAccount: (credentials: { email: string; password?: string }) => { success: boolean; message: string };
   registerTeacherAccount: (teacher: { name: string; email: string; password?: string; school?: string; division?: string; gradeLevel?: string; subject?: string }) => { success: boolean; message: string };
@@ -111,7 +137,7 @@ export interface UpdateSuggestion {
   id: string;
   title: string;
   source: string; // e.g., "DepEd Memorandum No. 021, s. 2026"
-  category: 'calendar' | 'bow' | 'assessment' | 'rubric';
+  category: 'calendar' | 'bow' | 'assessment' | 'rubric' | 'governance';
   summary: string;
   recommendedAction: string;
   status: 'pending' | 'approved' | 'dismissed';
@@ -132,9 +158,20 @@ const DEFAULT_TEACHER: UserAccount = {
   name: 'DepEd SHS Faculty Member',
   email: 'teacher.rox@deped.gov.ph',
   role: 'user',
+  isShs: true,
   school: 'LNNCHS / DepEd Region X',
   division: 'Division of Lanao del Norte'
 };
+
+// Official Registrar Identifiers
+export const REGISTRAR_SHS = 'fiel.official@deped.gov.ph'; // Sir Fiel
+export const REGISTRAR_JHS = 'edalyn.olis@deped.gov.ph'; // Ma'am Edalyn Olis
+export const MASTER_CREATOR = 'boisersteavenkinth@gmail.com';
+
+export function isAuthorizedForLIS(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return email === MASTER_CREATOR || email === REGISTRAR_SHS || email === REGISTRAR_JHS;
+}
 
 const INITIAL_SUGGESTIONS: UpdateSuggestion[] = [
   {
@@ -144,7 +181,7 @@ const INITIAL_SUGGESTIONS: UpdateSuggestion[] = [
     category: 'rubric',
     summary: 'Updates standard evaluation matrices for Grade 12 TechPro workplace simulations and practicum logs.',
     recommendedAction: 'Incorporate 5-point competency rubric into TechPro BOW viewer and ILAW Generator.',
-    status: 'pending',
+    status: 'approved',
     dateDetected: '2026-09-20'
   },
   {
@@ -154,7 +191,7 @@ const INITIAL_SUGGESTIONS: UpdateSuggestion[] = [
     category: 'assessment',
     summary: 'Formal validation of passing floor (75) to transmuted raw score conversion for Grade 11 Core Subjects.',
     recommendedAction: 'Verify Three-Term SF9 auto-calculation engine matches the 2026 addendum tables.',
-    status: 'pending',
+    status: 'approved',
     dateDetected: '2026-09-15'
   },
   {
@@ -164,27 +201,135 @@ const INITIAL_SUGGESTIONS: UpdateSuggestion[] = [
     category: 'bow',
     summary: 'Draft syllabus competencies for Term 3 vocational specializations under the 2026 curriculum.',
     recommendedAction: 'Pre-load draft competency records into the Competency Database for optional preview.',
-    status: 'pending',
+    status: 'approved',
     dateDetected: '2026-09-10'
+  },
+  {
+    id: 'upd-4',
+    title: 'DepEd Governance Reforms: AI-Powered Automation & Lead Agency ECAIR Launch',
+    source: 'Education Center for AI Research (ECAIR) - Mid-September 2026 Launch',
+    category: 'governance',
+    summary: 'Rollout of artificial intelligence-driven reforms to automate public fund distribution, leadership hiring, and resource monitoring.',
+    recommendedAction: 'Align institutional workflows with ECAIR strategic oversight and digital literacy campaigns.',
+    status: 'approved',
+    dateDetected: '2026-09-25'
+  },
+  {
+    id: 'upd-5',
+    title: 'DepEd Order No. 016, s. 2026: Enhanced Action Research & BERF Framework 2026',
+    source: 'DepEd Central Office — Policy, Planning and Research Division (PPRD)',
+    category: 'governance',
+    summary: 'Automated integration of AI-driven methodology matrices, tri-term data sampling, and ethics approval protocols into all Action Research outputs.',
+    recommendedAction: 'Auto-apply 2026 Action Research BERF Annex guidelines and automated methodology generator.',
+    status: 'approved',
+    dateDetected: '2026-09-26'
+  },
+  {
+    id: 'upd-6',
+    title: 'DO 022, s. 2026: MATATAG 2026 Evidence-Based Action Research Metrics',
+    source: 'DepEd Bureau of Education Assessment & Research',
+    category: 'assessment',
+    summary: 'Requires pre-test/post-test standard deviation and effect size calculation for school-based intervention studies.',
+    recommendedAction: 'Integrate auto-calculation for t-test effect sizes and statistical impact into Action Research Modules.',
+    status: 'approved',
+    dateDetected: '2026-09-26'
   }
 ];
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<UserAccount>(() => {
-    try {
-      const saved = localStorage.getItem('boiser_auth_current_user_v1');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.warn('Auth state load error', e);
-    }
-    return DEFAULT_TEACHER; // Default to guest teacher
-  });
+  const { user: firebaseUser, userProfile: fbProfile, loading: fbLoading } = useFirebase();
+  
+  const [currentUser, setCurrentUser] = useState<UserAccount>(DEFAULT_TEACHER);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [googleAccessToken, setGoogleAccessToken] = useState<string | null>(null);
 
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('boiser_is_authenticated_v1') === 'true';
-  });
+  // Sync Current User with Firebase
+  useEffect(() => {
+    if (firebaseUser && fbProfile) {
+      const teacher: UserAccount = {
+        id: fbProfile.uid,
+        name: fbProfile.displayName,
+        email: fbProfile.email,
+        role: fbProfile.uid === MASTER_CREATOR ? 'owner' : 'user',
+        school: fbProfile.school || 'LNNCHS',
+        isActivated: true,
+        isShs: true,
+      };
+      setCurrentUser(teacher);
+      setIsAuthenticated(true);
+    } else {
+      // Fallback to local guest if not signed in
+      const saved = localStorage.getItem('boiser_auth_current_user_v1');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setCurrentUser(parsed);
+          setIsAuthenticated(localStorage.getItem('boiser_is_authenticated_v1') === 'true');
+        } catch (e) {
+          console.warn('Auth state load error', e);
+        }
+      }
+    }
+  }, [firebaseUser, fbProfile]);
+
+  const [googleUser, setGoogleUser] = useState<FirebaseUser | null>(null);
+
+  // Real-time Firestore Listeners (only when signed in)
+  useEffect(() => {
+    if (!firebaseUser) return;
+
+    // Listen to Activity Logs
+    const qLogs = query(collection(db, 'activityLogs'), where('userEmail', '==', firebaseUser.email), orderBy('timestamp', 'desc'), limit(100));
+    const unsubLogs = onSnapshot(qLogs, (snap) => {
+      const logs = snap.docs.map(d => ({ id: d.id, ...d.data() } as ActivityLogItem));
+      setActivityLogs(logs);
+      localStorage.setItem('boiser_activity_logs_v1', JSON.stringify(logs));
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'activityLogs'));
+
+    // Listen to Security Alerts
+    const qAlerts = query(collection(db, 'securityAlerts'), where('sourceIpOrUser', '==', firebaseUser.email), orderBy('timestamp', 'desc'));
+    const unsubAlerts = onSnapshot(qAlerts, (snap) => {
+      const alerts = snap.docs.map(d => ({ id: d.id, ...d.data() } as SecurityAlert));
+      setSecurityAlerts(alerts);
+      localStorage.setItem('boiser_security_alerts_v1', JSON.stringify(alerts));
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'securityAlerts'));
+
+    // Listen to Notifications
+    const qNotifs = query(collection(db, 'notifications'), where('userId', '==', firebaseUser.uid), orderBy('timestamp', 'desc'));
+    const unsubNotifs = onSnapshot(qNotifs, (snap) => {
+      const notifs = snap.docs.map(d => ({ id: d.id, ...d.data() } as AppNotification));
+      setNotifications(notifs);
+      localStorage.setItem('boiser_notifications_v1', JSON.stringify(notifs));
+    });
+
+    return () => {
+      unsubLogs();
+      unsubAlerts();
+      unsubNotifs();
+    };
+  }, [firebaseUser]);
+
+  const connectGoogle = async () => {
+    try {
+      const res = await googleSignIn();
+      if (res) {
+        setGoogleAccessToken(res.accessToken);
+      }
+    } catch (err) {
+      console.error('Failed to connect Google account:', err);
+    }
+  };
+
+  const disconnectGoogle = async () => {
+    try {
+      await googleSignOut();
+      setGoogleAccessToken(null);
+    } catch (err) {
+      console.error('Failed to disconnect Google account:', err);
+    }
+  };
 
   const [activeLogoUrl, setActiveLogoUrl] = useState<string>(() => {
     try {
@@ -290,9 +435,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Recent request tracker for suspicious rapid-fire rate limiting detection
   const [requestTimestamps, setRequestTimestamps] = useState<number[]>([]);
 
-  const isOwner = currentUser.role === 'owner' && currentUser.email === 'boisersteavenkinth@gmail.com';
+  const isOwner = Boolean(
+    currentUser && (
+      currentUser.role === 'owner' ||
+      currentUser.email?.toLowerCase().trim() === 'boisersteavenkinth@gmail.com' ||
+      currentUser.email?.toLowerCase().trim() === 'boisersteavenkinth@deped.gov.ph' ||
+      currentUser.name?.toLowerCase().includes('steaven kinth')
+    )
+  );
 
-  const logActivity = (feature: string, action: string, details?: string) => {
+  const logActivity = async (feature: string, action: string, details?: string) => {
     const now = Date.now();
     const iso = new Date(now).toISOString();
 
@@ -319,27 +471,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    const newItem: ActivityLogItem = {
-      id: `log-${now}-${Math.random().toString(36).substring(2, 6)}`,
+    const newItem: Omit<ActivityLogItem, 'id'> = {
       userEmail: currentUser.email,
       userName: currentUser.name,
       role: currentUser.role,
       feature,
       action,
-      details,
+      details: details || '',
       timestamp: iso,
       isSuspicious
     };
 
-    setActivityLogs(prev => {
-      const updated = [newItem, ...prev.slice(0, 99)]; // Keep latest 100
+    if (firebaseUser) {
       try {
-        localStorage.setItem('boiser_activity_logs_v1', JSON.stringify(updated));
+        await addDoc(collection(db, 'activityLogs'), newItem);
       } catch (e) {
-        console.warn('Logs save error', e);
+        handleFirestoreError(e, OperationType.CREATE, 'activityLogs');
       }
-      return updated;
-    });
+    } else {
+      setActivityLogs(prev => {
+        const updated = [{ id: `log-${now}`, ...newItem } as ActivityLogItem, ...prev.slice(0, 99)];
+        localStorage.setItem('boiser_activity_logs_v1', JSON.stringify(updated));
+        return updated;
+      });
+    }
   };
 
   useEffect(() => {
@@ -370,7 +525,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     password?: string;
   }): { success: boolean; message: string } => {
     const trimmedEmail = credentials.email.trim().toLowerCase();
-    const isMaster = trimmedEmail === 'boisersteavenkinth@gmail.com';
+    const isMaster = trimmedEmail === 'boisersteavenkinth@gmail.com' || trimmedEmail === 'boisersteavenkinth@deped.gov.ph';
     const isDepEd = trimmedEmail.endsWith('@deped.gov.ph');
 
     if (!isMaster && !isDepEd) {
@@ -386,7 +541,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const remainingMins = Math.round((lockoutStatus.remainingMs || 0) / 60000);
       return {
         success: false,
-        message: `Account Under 5-Hour Restriction (${remainingMins} mins remaining): Suspicious or unauthorized activity detected. Only Master Creator Steaven Kinth D. Boiser can authorize your login.`
+        message: `Account Under 5-Hour Restriction (${remainingMins} mins remaining): Suspicious or unauthorized activity detected. Only the Official System Administrator can authorize your login.`
       };
     }
 
@@ -395,7 +550,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (existingUser && existingUser.isBlocked) {
       return { 
         success: false, 
-        message: 'Account Blocked: Too many failed attempts. Please contact the Master Creator for assistance.' 
+        message: 'Account Blocked: Too many failed attempts. Please contact the System Administrator for assistance.' 
       };
     }
 
@@ -425,6 +580,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       name: isMaster ? 'Steaven Kinth D. Boiser' : 'DepEd Teacher',
       email: trimmedEmail,
       role: isMaster ? 'owner' : 'user',
+      isShs: trimmedEmail.includes('shs') || trimmedEmail === REGISTRAR_SHS, // Heuristic or explicit
+      isRegistrar: trimmedEmail === REGISTRAR_SHS || trimmedEmail === REGISTRAR_JHS,
       school: isMaster ? 'LNNCHS' : 'LNNCHS / DepEd Public School',
       division: 'Division of Lanao del Norte',
       isActivated: isMaster ? true : false // Master is pre-activated
@@ -464,7 +621,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     subject?: string;
   }): { success: boolean; message: string } => {
     const trimmedEmail = teacher.email.trim().toLowerCase();
-    const isMaster = trimmedEmail === 'boisersteavenkinth@gmail.com';
+    const isMaster = trimmedEmail === 'boisersteavenkinth@gmail.com' || trimmedEmail === 'boisersteavenkinth@deped.gov.ph';
     const isDepEd = trimmedEmail.endsWith('@deped.gov.ph');
 
     if (!isMaster && !isDepEd) {
@@ -777,6 +934,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         currentUser,
+        user: googleUser,
+        isGoogleConnected: !!googleAccessToken,
+        googleAccessToken,
+        connectGoogle,
+        disconnectGoogle,
         isOwner,
         isAuthenticated,
         activityLogs,

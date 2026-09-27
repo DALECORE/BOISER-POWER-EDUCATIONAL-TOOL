@@ -23,7 +23,7 @@ export const LNNCHS_OFFICIAL_DOCUMENTS: OfficialDocumentItem[] = [
     code: 'LNNCHS-SHB-2025-2026',
     title: 'Lanao del Norte National Comprehensive High School Student Handbook (S.Y. 2025-2026)',
     category: 'Student Handbook',
-    issuer: 'LNNCHS Child Protection Committee & Office of the Principal (Anisah A. Sinal, Principal IV)',
+    issuer: 'LNNCHS Child Protection Committee & Office of the Principal (Anisah A. Sinal, Secondary School Principal III)',
     dateIssued: 'August 2025',
     schoolYear: '2025-2026 / 2026-2027',
     applicableGrades: ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'],
@@ -38,10 +38,10 @@ export const LNNCHS_OFFICIAL_DOCUMENTS: OfficialDocumentItem[] = [
     fullSections: [
       {
         heading: 'Correspondence Directory & School Profile',
-        content: 'Mailing Address: Sto. Niño Village, Baroy, Lanao del Norte. Email: 304005.ldn@deped.gov.ph. School ID: 304005. Fax/Phone: (063) 221-373-6215. Campus Area: 78,981 square meters (7.893 hectares). Established 1945 as Lanao West High School; renamed 1950 to Lanao del Norte Provincial High School (RA 228); chartered 1971 as LNNCHS.',
+        content: 'Mailing Address: Sto. Niño Village, Baroy, Lanao del Norte, Philippines. Email: 304005.ldn@deped.gov.ph. School ID: 304005. Fax/Phone: (063) 221-373-6215. Campus Area: 78,981 square meters (7.893 hectares). Established 1945 as Lanao West High School; renamed 1950 to Lanao del Norte Provincial High School (RA 228); chartered 1971 as LNNCHS.',
         keyPoints: [
-          'School ID: 304005 (Sto. Niño Village, Baroy, Lanao del Norte)',
-          'School Head: Anisah A. Sinal (Secondary School Principal IV)',
+          'School ID: 304005 (Sto. Niño Village, Baroy, Lanao del Norte, Philippines)',
+          'School Head: Anisah A. Sinal (Secondary School Principal III)',
           'Guidance Counselor Designate: Lourdes D. Ong, RGC',
           'School Seal: Sarimanok with book on its claw and a torch representing knowledge, wisdom, and light.'
         ]
@@ -213,7 +213,7 @@ export const LNNCHS_OFFICIAL_DOCUMENTS: OfficialDocumentItem[] = [
     code: 'LNNCHS-SM-2026-06',
     title: 'LNNCHS School Memorandum s. 2026: Beginning of School Year 2026-2027 Meeting for Sports Coaches & SPS Advisers',
     category: 'School Memorandum',
-    issuer: 'Office of the Principal - Anisah A. Sinal (Secondary School Principal IV)',
+    issuer: 'Office of the Principal - Anisah A. Sinal (Secondary School Principal III)',
     dateIssued: 'June 8, 2026',
     schoolYear: '2026-2027',
     applicableGrades: ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'],
@@ -229,7 +229,7 @@ export const LNNCHS_OFFICIAL_DOCUMENTS: OfficialDocumentItem[] = [
         content: 'Convenes sports leaders on June 9, 2026 (8:00 AM, LNNCHS Conference Hall) with key agenda: 1. Orientation on School Sports and SPS Program for S.Y. 2026-2027; 2. Selection and Training Program for Student-Athletes; 3. Roles and responsibilities of Sports Coaches and Teacher-Advisers (including Ma\'am Kisshia, Coach Bernardo Diaz, and specialization mentors); 4. Facilities management for athletic oval, gym, and tennis/volleyball courts.',
         keyPoints: [
           'Addressed to: Norwin F. Palao (School Sports Coordinator), Cyril Mark B. Olis (SPS Coordinator), Coaches & Advisers',
-          'Approved by: Anisah A. Sinal (Secondary School Principal IV)',
+          'Approved by: Anisah A. Sinal (Secondary School Principal III)',
           'Covers athlete selection, training schedule, and sports facility operations'
         ]
       }
@@ -458,6 +458,57 @@ export const LNNCHS_OFFICIAL_DOCUMENTS: OfficialDocumentItem[] = [
         heading: 'Training Mechanics',
         content: 'Module 2 technical walkthrough on classroom creation, skill mastery tracking, and blended learning integration.',
         keyPoints: ['Khan Academy platform setup', 'Differentiated math/science learning', 'Teacher dashboard navigation']
+      }
+    ]
+  },
+  {
+    id: 'doc-deped-ai-reforms-2026',
+    code: 'DepEd-AI-Reforms-2026',
+    title: 'DepEd Launches AI-Powered Governance Reforms for Philippine Basic Education',
+    category: 'DepEd Order',
+    issuer: 'Education Center for AI Research (ECAIR) & Office of the Secretary',
+    dateIssued: 'September 2026',
+    schoolYear: '2026-2027',
+    applicableGrades: ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'],
+    applicableSections: ['All LNNCHS Faculty & Administrative Personnel'],
+    summary: 'A landmark digital transformation initiative overseeing the AI rollout to strengthen transparency, streamline operations, and improve system integrity. Lead agency Education Center for AI Research (ECAIR) prioritizes automating manual DepEd processes including public fund distribution and school leadership assessments.',
+    keywords: ['ai-powered', 'governance reforms', 'ecair', 'sonny angara', 'automation', 'modernization', 'cybersecurity', 'digital literacy'],
+    fullSections: [
+      {
+        heading: 'Lead Agency & Strategic Oversight',
+        content: 'The Education Center for AI Research (ECAIR) is the dedicated DepEd unit overseeing the AI rollout. Core goals include fairer resource allocation, faster administrative responses, and increased trust among teachers, parents, and learners.',
+        keyPoints: [
+          'ECAIR oversight of national AI implementation',
+          'Focus on transparency and system integrity',
+          'Mid-September 2026 official launch date'
+        ]
+      },
+      {
+        heading: 'Key Reform Details & Automation',
+        content: 'The reforms prioritize using AI tools to automate and standardize traditionally manual processes: public fund distribution, school leadership hiring/assessment, and real-time monitoring of learning resource allocation. Education Secretary Sonny Angara emphasizes technology as a means for improvement, not an end in itself.',
+        keyPoints: [
+          'Automated public fund distribution tracking',
+          'Standardized leadership hiring through AI assessment',
+          'Parallel AI management training workshops for division leaders'
+        ]
+      },
+      {
+        heading: '2026 Modernization Context',
+        content: 'These reforms are part of a broader package including the Three-Term Academic Calendar (DO 009, s. 2026), revised junior high school learning competencies, and a national digital literacy/cybersecurity campaign. It also includes plans to reduce teacher teaching loads to prioritize student psychosocial support.',
+        keyPoints: [
+          'Alignment with DO 009, s. 2026 Three-Term Calendar',
+          'National digital literacy & cybersecurity campaign',
+          'Policy drafting for reduced teacher loads'
+        ]
+      },
+      {
+        heading: 'Implementation Readiness & Challenges',
+        content: 'While potential for improvement is high, only 21% of K-12 educators feel fully prepared to integrate AI tools. Standardized guidelines for classroom AI use (pedagogical integration) are still being developed.',
+        keyPoints: [
+          '21% teacher preparedness recorded in initial surveys',
+          'Classroom AI guidelines currently under development',
+          'Focus on administrative efficiency first'
+        ]
       }
     ]
   }

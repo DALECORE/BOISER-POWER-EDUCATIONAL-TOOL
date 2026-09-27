@@ -9,6 +9,8 @@ import { LNNCHSOfficialDocumentsModule } from './LNNCHSOfficialDocumentsModule';
 import { LNNCHSUpdatedMemosDashboard } from './LNNCHSUpdatedMemosDashboard';
 import { LNNCHSSHSFacultyAndExamsModule } from './LNNCHSSHSFacultyAndExamsModule';
 import { AdviserDoorsHome } from './AdviserDoorsHome'; // Added
+import { ImproveMyDocumentSuite } from './ImproveMyDocumentSuite';
+import { ChalkScoringSheetToolkit } from './ChalkScoringSheetToolkit';
 import { LnnchsDoorResultPreviewModal } from './LnnchsDoorResultPreviewModal';
 import { LISStudentMasterRecord } from '../data/lnnchsCompleteSectionsDirectory';
 import { 
@@ -61,7 +63,8 @@ import {
 
 export const LNNCHSTemplatesManager: React.FC = () => {
   const { currentUser: authUser } = useAuth();
-  const [viewMode, setViewMode] = useState<'las_available' | 'lrmds' | 'deped_commons' | 'lis_directory' | 'individual' | 'blank_templates' | 'online_guide' | 'official_docs' | 'memo_dashboard' | 'shs_faculty_exams' | 'adviser_doors'>('las_available');
+  const [viewMode, setViewMode] = useState<'las_available' | 'improve_document' | 'chalk_toolkit' | 'lrmds' | 'deped_commons' | 'lis_directory' | 'individual' | 'blank_templates' | 'online_guide' | 'memos_and_policies' | 'shs_faculty_exams' | 'adviser_doors'>('las_available');
+  const [memosSubTab, setMemosSubTab] = useState<'memos' | 'policies'>('memos');
   const [selectedFormId, setSelectedFormId] = useState<string>('SF1');
   const [config, setConfig] = useState<SchoolFormConfig>(LNNCHS_DEFAULT_CONFIG);
   const [isExporting, setIsExporting] = useState<string | null>(null);
@@ -444,6 +447,28 @@ export const LNNCHSTemplatesManager: React.FC = () => {
       {/* ================= PRIMARY NAVIGATION MODE TOGGLE ================= */}
       <div className="flex flex-wrap bg-stone-200/80 p-1.5 rounded-2xl gap-2 shadow-inner">
         <button
+          onClick={() => setViewMode('chalk_toolkit')}
+          className={`flex-1 min-w-[200px] py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 cursor-pointer ${
+            viewMode === 'chalk_toolkit'
+              ? 'bg-[#181d16] text-[#ffb700] shadow-md border border-[#ffb700]/50'
+              : 'bg-[#1d231a]/80 text-[#e3e6dd] hover:bg-[#1d231a] font-black'
+          }`}
+        >
+          <FileSpreadsheet className="w-4 h-4 text-[#ffb700]" />
+          <span>📊 Chalk Toolkit (Mobile Sync &amp; Scores)</span>
+        </button>
+        <button
+          onClick={() => setViewMode('improve_document')}
+          className={`flex-1 min-w-[200px] py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 cursor-pointer ${
+            viewMode === 'improve_document'
+              ? 'bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 text-slate-950 shadow-md border border-amber-300'
+              : 'bg-amber-100 text-amber-950 hover:bg-amber-200/80 font-black'
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-slate-950 animate-pulse" />
+          <span>✨ Improve My Document (10 Tools)</span>
+        </button>
+        <button
           onClick={() => setViewMode('las_available')}
           className={`flex-1 min-w-[170px] py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 cursor-pointer ${
             viewMode === 'las_available'
@@ -464,17 +489,6 @@ export const LNNCHSTemplatesManager: React.FC = () => {
         >
           <Database className="w-4 h-4 text-cyan-400" />
           <span>📦 LRMDS Resources</span>
-        </button>
-        <button
-          onClick={() => setViewMode('deped_commons')}
-          className={`flex-1 min-w-[170px] py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 cursor-pointer ${
-            viewMode === 'deped_commons'
-              ? 'bg-[#092B62] text-white shadow-md'
-              : 'text-stone-700 hover:bg-stone-300/60'
-          }`}
-        >
-          <Globe className="w-4 h-4 text-emerald-400" />
-          <span>🌐 DepEd Commons</span>
         </button>
         <button
           onClick={() => setViewMode('lis_directory')}
@@ -520,27 +534,16 @@ export const LNNCHSTemplatesManager: React.FC = () => {
           <GraduationCap className="w-4 h-4 text-amber-300" />
           <span>👥 Teachers Load &amp; Pag-Sub Assistant (JHS/SHS)</span>
         </button>
-        <button
-          onClick={() => setViewMode('official_docs')}
-          className={`flex-1 min-w-[180px] py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 cursor-pointer ${
-            viewMode === 'official_docs'
-              ? 'bg-[#092B62] text-white shadow-md'
+         <button
+          onClick={() => setViewMode('memos_and_policies')}
+          className={`flex-1 min-w-[210px] py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 cursor-pointer ${
+            viewMode === 'memos_and_policies'
+              ? 'bg-gradient-to-r from-amber-500 to-yellow-600 text-slate-950 shadow-md scale-102 border border-amber-400'
               : 'text-stone-700 hover:bg-stone-300/60'
           }`}
         >
-          <BookMarked className="w-4 h-4 text-emerald-400" />
-          <span>📜 Policy &amp; Memo Docs</span>
-        </button>
-        <button
-          onClick={() => setViewMode('memo_dashboard')}
-          className={`flex-1 min-w-[180px] py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 cursor-pointer ${
-            viewMode === 'memo_dashboard'
-              ? 'bg-[#092B62] text-white shadow-md'
-              : 'text-stone-700 hover:bg-stone-300/60'
-          }`}
-        >
-          <Shield className="w-4 h-4 text-[#FCD116]" />
-          <span>🔔 Official Memos Dashboard</span>
+          <Shield className="w-4 h-4 text-[#002776] shrink-0" />
+          <span>🔔 Official Memos &amp; Policies</span>
         </button>
         <button
           onClick={() => setViewMode('adviser_doors')}
@@ -555,7 +558,18 @@ export const LNNCHSTemplatesManager: React.FC = () => {
         </button>
       </div>
 
-      {viewMode === 'las_available' ? (
+      {viewMode === 'chalk_toolkit' ? (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          <ChalkScoringSheetToolkit sectionName="Grade 11 STEM & TVL LNNCHS" />
+        </div>
+      ) : viewMode === 'improve_document' ? (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          <ImproveMyDocumentSuite
+            initialDocTitle="DepEd LNNCHS Document & Lesson Plan"
+            initialCategory="general"
+          />
+        </div>
+      ) : viewMode === 'las_available' ? (
         <div className="space-y-8">
           <div className="bg-white rounded-3xl p-8 border border-stone-200 shadow-sm space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-stone-100 pb-4">
@@ -607,27 +621,41 @@ export const LNNCHSTemplatesManager: React.FC = () => {
         </div>
       ) : viewMode === 'lrmds' ? (
         <LRMDSModule />
-      ) : viewMode === 'deped_commons' ? (
-        <div className="bg-white rounded-3xl p-8 border border-stone-200 shadow-sm space-y-6 text-center">
-           <div className="max-w-md mx-auto space-y-4">
-             <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto">
-               <Globe className="w-10 h-10" />
-             </div>
-             <h2 className="text-2xl font-black text-stone-900">DepEd Commons Activity Sheets</h2>
-             <p className="text-sm text-stone-500">Access thousands of free digital resources, activity sheets, and interactive modules from the official DepEd Commons portal.</p>
-             <a 
-               href="https://commons.deped.gov.ph" 
-               target="_blank" 
-               rel="noreferrer"
-               className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-black transition hover:bg-emerald-700 shadow-lg"
-             >
-               <ExternalLink className="w-5 h-5" />
-               <span>Launch DepEd Commons Portal</span>
-             </a>
-           </div>
+      ) : viewMode === 'memos_and_policies' ? (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          {/* High-Tech Sub-Navigation Tab bar */}
+          <div className="p-2 bg-stone-100 rounded-2xl border border-stone-200 flex flex-wrap gap-2">
+            <button
+              onClick={() => setMemosSubTab('memos')}
+              className={`flex-1 py-3 px-4 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer ${
+                memosSubTab === 'memos'
+                  ? 'bg-[#002776] text-white shadow-md scale-102'
+                  : 'text-stone-600 hover:bg-stone-200'
+              }`}
+            >
+              <span>🔔 Official Memos Dashboard</span>
+            </button>
+            <button
+              onClick={() => setMemosSubTab('policies')}
+              className={`flex-1 py-3 px-4 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer ${
+                memosSubTab === 'policies'
+                  ? 'bg-[#002776] text-white shadow-md scale-102'
+                  : 'text-stone-600 hover:bg-stone-200'
+              }`}
+            >
+              <span>📜 Policy &amp; Guideline Documents</span>
+            </button>
+          </div>
+
+          {/* Render Active Sub-tab */}
+          <div className="animate-in fade-in duration-200">
+            {memosSubTab === 'memos' ? (
+              <LNNCHSUpdatedMemosDashboard />
+            ) : (
+              <LNNCHSOfficialDocumentsModule />
+            )}
+          </div>
         </div>
-      ) : viewMode === 'memo_dashboard' ? (
-        <LNNCHSUpdatedMemosDashboard />
       ) : viewMode === 'shs_faculty_exams' ? (
         <LNNCHSSHSFacultyAndExamsModule />
       ) : viewMode === 'lis_directory' ? (
@@ -636,8 +664,6 @@ export const LNNCHSTemplatesManager: React.FC = () => {
         <LNNCHSBlankTemplatesModule />
       ) : viewMode === 'online_guide' ? (
         <LNNCHSOnlineGuideModule />
-      ) : viewMode === 'official_docs' ? (
-        <LNNCHSOfficialDocumentsModule />
       ) : viewMode === 'adviser_doors' ? (
         <AdviserDoorsHome 
           currentUser={{ 

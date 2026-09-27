@@ -284,6 +284,38 @@ export const TechProBOWViewer: React.FC<TechProBOWViewerProps> = ({ onSelectForI
                   <strong>Notice on Delivery:</strong> {currentElective.deliveryNote}
                 </div>
 
+                {/* 5-Point Competency Rubric (Suggestion upd-1) */}
+                <div className="mt-4 p-4 bg-slate-900 text-white rounded-xl border border-indigo-500/30 shadow-inner">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Award className="w-4 h-4 text-amber-400" />
+                    <span className="text-xs font-black uppercase tracking-widest text-amber-300">
+                      DepEd Standard 5-Point Competency Rubric (upd-1)
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-5 gap-2 text-[10px]">
+                    <div className="p-2 bg-white/5 rounded-lg border border-white/10 text-center">
+                      <div className="font-black text-rose-400">1</div>
+                      <div className="text-stone-400">Beginning</div>
+                    </div>
+                    <div className="p-2 bg-white/5 rounded-lg border border-white/10 text-center">
+                      <div className="font-black text-orange-400">2</div>
+                      <div className="text-stone-400">Developing</div>
+                    </div>
+                    <div className="p-2 bg-white/5 rounded-lg border border-white/10 text-center">
+                      <div className="font-black text-amber-400">3</div>
+                      <div className="text-stone-400">Approaching</div>
+                    </div>
+                    <div className="p-2 bg-white/5 rounded-lg border border-white/10 text-center">
+                      <div className="font-black text-emerald-400">4</div>
+                      <div className="text-stone-400">Proficient</div>
+                    </div>
+                    <div className="p-2 bg-white/5 rounded-lg border border-white/10 text-center">
+                      <div className="font-black text-cyan-400">5</div>
+                      <div className="text-stone-400">Mastery</div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Content & Performance Standards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
                   <div className="bg-slate-50 p-4 rounded-lg border border-slate-200/70">

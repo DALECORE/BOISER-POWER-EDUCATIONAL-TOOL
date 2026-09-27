@@ -34,6 +34,104 @@ interface DatabaseBrowserProps {
   onImportCompetencies?: (records: CompetencyRecord[]) => void;
 }
 
+
+// Memoized Competency Card to prevent unnecessary re-renders
+const CompetencyCard = React.memo(({
+  comp,
+  isSelected,
+  toggleSelectComp
+}: {
+  comp: any;
+  isSelected: boolean;
+  toggleSelectComp: (id: string) => void;
+}) => {
+  const isGrade11 = comp.grade_level === 11;
+  const isGrade12 = comp.grade_level === 12;
+
+  return (
+    <div
+      className={`bg-white rounded-3xl p-5 border transition flex flex-col justify-between hover:shadow-md ${
+        isSelected
+          ? 'border-blue-600 bg-blue-50/30 ring-2 ring-blue-500/20 shadow-xs'
+          : comp.transition_flag
+          ? 'border-amber-300/80 bg-amber-50/20'
+          : isGrade11
+          ? 'border-emerald-300/80 bg-emerald-50/15'
+          : 'border-stone-200/90'
+      }`}
+    >
+      {/* Header Badges & Checkbox */}
+      <div>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => toggleSelectComp(comp.id)}
+              className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg border text-[11px] font-bold cursor-pointer transition ${
+                isSelected
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                  : 'bg-stone-50 hover:bg-stone-100 text-stone-600 border-stone-200'
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={() => {}}
+                className="w-3.5 h-3.5 rounded text-blue-600 focus:ring-0 cursor-pointer pointer-events-none"
+              />
+              <span>{isSelected ? 'Selected' : 'Select'}</span>
+            </button>
+
+            <span className="px-2 py-0.5 rounded-lg bg-stone-100 text-stone-800 text-[10px] font-bold">
+              {comp.subject_code} • Grade {comp.grade_level}
+            </span>
+            
+            {comp.track && (
+              <span className="px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 text-[10px] font-semibold">
+                {comp.track} Track
+              </span>
+            )}
+
+            {comp.transition_flag && (
+              <span className="px-2 py-0.5 rounded-lg bg-amber-100 text-amber-900 text-[10px] font-extrabold border border-amber-300">
+                ⚠️ Gr 12 Transition (DO 015 Par. 49)
+              </span>
+            )}
+          </div>
+          <div className="text-[10px] font-bold text-stone-400">
+            {comp.competency_code}
+          </div>
+        </div>
+
+        {/* Verification Status */}
+        <div className="flex items-center gap-1 mb-2">
+            <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-0.5 bg-emerald-50 px-1.5 py-0.5 rounded">
+              <CheckCircle2 className="w-3 h-3" />
+              {comp.verification_status}
+            </span>
+        </div>
+
+        <p className="text-xs font-medium text-stone-700 leading-relaxed mb-2">
+          {comp.learning_competency}
+        </p>
+
+        {/* Subject Title and Domain */}
+        <div className="flex items-baseline justify-between gap-2">
+          <h3 className="text-sm font-bold text-stone-900 font-display">
+            {comp.subject_title}
+          </h3>
+        </div>
+      </div>
+
+      {/* Footer Details */}
+      <div className="mt-4 flex items-center justify-between pt-3 border-t border-stone-100">
+        <span className="text-[10px] font-bold text-stone-500">
+          Domain: {comp.domain}
+        </span>
+      </div>
+    </div>
+  );
+});
+
 export const DatabaseBrowser: React.FC<DatabaseBrowserProps> = ({
   competencies,
   onSelectForLessonPlan,
@@ -558,160 +656,16 @@ export const DatabaseBrowser: React.FC<DatabaseBrowserProps> = ({
 
       {/* Competency Card Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {filtered.map((comp) => {
-          const isGrade11 = comp.grade_level === 11;
-          const isGrade12 = comp.grade_level === 12;
-          const isSelected = selectedCompIds.has(comp.id);
 
-          return (
-            <div
-              key={comp.id}
-              className={`bg-white rounded-3xl p-5 border transition flex flex-col justify-between hover:shadow-md ${
-                isSelected
-                  ? 'border-blue-600 bg-blue-50/30 ring-2 ring-blue-500/20 shadow-xs'
-                  : comp.transition_flag
-                  ? 'border-amber-300/80 bg-amber-50/20'
-                  : isGrade11
-                  ? 'border-emerald-300/80 bg-emerald-50/15'
-                  : 'border-stone-200/90'
-              }`}
-            >
-              {/* Header Badges & Checkbox */}
-              <div>
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <button
-                      onClick={() => toggleSelectComp(comp.id)}
-                      className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg border text-[11px] font-bold cursor-pointer transition ${
-                        isSelected
-                          ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-                          : 'bg-stone-50 hover:bg-stone-100 text-stone-600 border-stone-200'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => {}}
-                        className="w-3.5 h-3.5 rounded text-blue-600 focus:ring-0 cursor-pointer pointer-events-none"
-                      />
-                      <span>{isSelected ? 'Selected' : 'Select'}</span>
-                    </button>
+        {filtered.map((comp) => (
+          <CompetencyCard
+            key={comp.id}
+            comp={comp}
+            isSelected={selectedCompIds.has(comp.id)}
+            toggleSelectComp={toggleSelectComp}
+          />
+        ))}
 
-                    <span className="px-2 py-0.5 rounded-lg bg-stone-100 text-stone-800 text-[10px] font-bold">
-                      {comp.grade_level === 'Kindergarten' ? 'Kindergarten' : `Grade ${comp.grade_level}`} ({comp.key_stage})
-                    </span>
-
-                    <span className="px-2 py-0.5 rounded-lg bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-100">
-                      Term {comp.term} • Week {comp.week}
-                    </span>
-
-                    {comp.track && (
-                      <span className="px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 text-[10px] font-semibold">
-                        {comp.track} Track
-                      </span>
-                    )}
-
-                    {comp.transition_flag && (
-                      <span className="px-2 py-0.5 rounded-lg bg-amber-100 text-amber-900 text-[10px] font-extrabold border border-amber-300">
-                        ⚠️ Gr 12 Transition (DO 015 Par. 49)
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-0.5 bg-emerald-50 px-1.5 py-0.5 rounded">
-                      <CheckCircle2 className="w-3 h-3" />
-                      {comp.verification_status}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Subject Title and Domain */}
-                <div className="mb-2">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <h3 className="text-base font-bold text-stone-900 font-display">
-                      {comp.subject_title}
-                    </h3>
-                    <span className="text-[11px] font-mono text-stone-400 shrink-0">
-                      {comp.competency_code || comp.subject_code}
-                    </span>
-                  </div>
-                  {comp.domain && (
-                    <p className="text-[11px] text-blue-700 font-medium mt-0.5">
-                      Domain: {comp.domain}
-                    </p>
-                  )}
-                </div>
-
-                {/* Exact Learning Competency Text */}
-                <div className="p-3 rounded-2xl bg-stone-50 border border-stone-100 text-xs text-stone-800 leading-relaxed font-sans mb-3">
-                  <span className="font-bold text-stone-900 block mb-1 text-[11px] uppercase tracking-wider">
-                    Learning Competency:
-                  </span>
-                  "{comp.learning_competency}"
-                </div>
-
-                {/* Content & Performance Standards Preview */}
-                {comp.content_standard && (
-                  <div className="text-[11px] text-stone-500 space-y-1 mb-3">
-                    <p className="line-clamp-2">
-                      <strong className="text-stone-700">CS:</strong> {comp.content_standard}
-                    </p>
-                    {comp.performance_standard && (
-                      <p className="line-clamp-2">
-                        <strong className="text-stone-700">PS:</strong> {comp.performance_standard}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Action Buttons & Source Citation */}
-              <div className="pt-3 border-t border-stone-100 flex flex-wrap items-center justify-between gap-2 text-xs">
-                <div className="text-[10px] text-stone-400 truncate max-w-[200px]" title={comp.bow_source}>
-                  Source: {comp.bow_source}
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => setActiveModalComp(comp)}
-                    title="Inspect Full Schema JSON"
-                    className="p-1.5 rounded-lg text-stone-500 hover:text-stone-900 hover:bg-stone-100 transition cursor-pointer"
-                  >
-                    <FileCode className="w-3.5 h-3.5" />
-                  </button>
-
-                  <button
-                    onClick={() => onSelectForLessonPlan(comp)}
-                    title="Create DepEd Lesson Plan (DLL)"
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 hover:bg-blue-100 text-[11px] font-semibold transition cursor-pointer"
-                  >
-                    <FileText className="w-3 h-3 text-blue-600" />
-                    <span>Plan DLL</span>
-                  </button>
-
-                  <button
-                    onClick={() => onSelectForAssessment(comp)}
-                    title="Build Assessment / TOS"
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-[11px] font-semibold transition cursor-pointer"
-                  >
-                    <CheckSquare className="w-3 h-3 text-emerald-600" />
-                    <span>Assess</span>
-                  </button>
-
-                  <button
-                    onClick={() => onSelectForCanva(comp)}
-                    title="Send to Canva Presentation Bridge"
-                    className="flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-50 text-purple-800 hover:bg-purple-100 text-[11px] font-semibold transition cursor-pointer"
-                  >
-                    <Presentation className="w-3 h-3 text-purple-600" />
-                    <span>Canva</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          );
-        })}
       </div>
 
       {/* Full Schema Inspector Modal */}

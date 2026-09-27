@@ -1,70 +1,69 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
-export interface BeforeInstallPromptEvent extends Event {
-  readonly platforms: string[];
-  readonly userChoice: Promise<{
-    outcome: 'accepted' | 'dismissed';
-    platform: string;
-  }>;
-  prompt(): Promise<void>;
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
 
-export type DetectedPlatform = 'android' | 'ios' | 'windows' | 'mac' | 'linux' | 'other';
+export type DetectedPlatform = 'ios' | 'android' | 'desktop' | 'unknown' | 'windows' | 'mac' | 'linux';
 
 export function usePWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
-  const [isInstallable, setIsInstallable] = useState(false);
-  const [installStatus, setInstallStatus] = useState<'idle' | 'installing' | 'success' | 'dismissed' | 'unsupported'>('idle');
-  const [platform, setPlatform] = useState<DetectedPlatform>('other');
   const [isIOS, setIsIOS] = useState(false);
   const [isAndroid, setIsAndroid] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [platform, setPlatform] = useState<DetectedPlatform>('unknown');
+  const [installStatus, setInstallStatus] = useState<'idle' | 'installing' | 'installed' | 'failed'>('idle');
 
   useEffect(() => {
-    // 1. Detect standalone mode (already running as installed PWA)
+    // Detect standalone mode (already installed)
     const isStandalone =
       window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
-      document.referrer.includes('android-app://');
+      (window.navigator as any).standalone === true;
     setIsInstalled(isStandalone);
+    if (isStandalone) {
+      setInstallStatus('installed');
+    }
 
-    // 2. Detect platform & device
-    const ua = window.navigator.userAgent.toLowerCase();
-    const isIOSDevice = /iphone|ipad|ipod/.test(ua) || (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
-    const isAndroidDevice = /android/.test(ua);
-    const isMobileDevice = isIOSDevice || isAndroidDevice || /mobile|tablet|phone/.test(ua);
+    // Detect platform
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isIOSDevice = /iphone|ipad|ipod/.test(userAgent);
+    const isAndroidDevice = /android/.test(userAgent);
+    const isWindows = /win/.test(userAgent);
+    const isMac = /mac/.test(userAgent) && !isIOSDevice;
+    const isLinux = /linux/.test(userAgent) && !isAndroidDevice;
+    const isMobileDevice = isIOSDevice || isAndroidDevice || /mobi|tablet|opera mini/.test(userAgent);
 
     setIsIOS(isIOSDevice);
     setIsAndroid(isAndroidDevice);
     setIsMobile(isMobileDevice);
 
-    if (isAndroidDevice) {
-      setPlatform('android');
-    } else if (isIOSDevice) {
+    if (isIOSDevice) {
       setPlatform('ios');
-    } else if (/windows/.test(ua)) {
+    } else if (isAndroidDevice) {
+      setPlatform('android');
+    } else if (isWindows) {
       setPlatform('windows');
-    } else if (/macintosh|mac os x/.test(ua)) {
+    } else if (isMac) {
       setPlatform('mac');
-    } else if (/linux/.test(ua)) {
+    } else if (isLinux) {
       setPlatform('linux');
+    } else if (isMobileDevice) {
+      setPlatform('android'); // default mobile to android-like if mobile
     } else {
-      setPlatform('other');
+      setPlatform('desktop');
     }
 
-    // 3. Listen for browser install prompt
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setIsInstallable(true);
     };
 
     const handleAppInstalled = () => {
       setIsInstalled(true);
-      setIsInstallable(false);
       setDeferredPrompt(null);
-      setInstallStatus('success');
+      setInstallStatus('installed');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -76,38 +75,29 @@ export function usePWAInstall() {
     };
   }, []);
 
-  const install = async (): Promise<boolean> => {
-    if (!deferredPrompt) {
-      if (isIOS) {
-        setInstallStatus('unsupported');
-        return false;
-      }
-      return false;
-    }
-
+  const install = async () => {
+    if (!deferredPrompt) return false;
     setInstallStatus('installing');
     try {
       await deferredPrompt.prompt();
-      const choice = await deferredPrompt.userChoice;
-      if (choice.outcome === 'accepted') {
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
         setIsInstalled(true);
-        setIsInstallable(false);
         setDeferredPrompt(null);
-        setInstallStatus('success');
+        setInstallStatus('installed');
         return true;
       } else {
-        setInstallStatus('dismissed');
-        return false;
+        setInstallStatus('idle');
       }
     } catch (err) {
-      console.error('PWA Installation error:', err);
-      setInstallStatus('dismissed');
-      return false;
+      console.error('PWA Installation failed:', err);
+      setInstallStatus('failed');
     }
+    return false;
   };
 
   return {
-    isInstallable,
+    isInstallable: !!deferredPrompt,
     isInstalled,
     installStatus,
     setInstallStatus,

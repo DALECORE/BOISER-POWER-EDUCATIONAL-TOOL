@@ -28,9 +28,10 @@ import {
   Award
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
+import { ClassProgramAndTeacherLoadMaker } from './ClassProgramAndTeacherLoadMaker';
 
 export const LNNCHSTeacherLoadingSummaryDashboard: React.FC = () => {
-  const [levelTab, setLevelTab] = useState<'SHS' | 'JHS'>('SHS');
+  const [levelTab, setLevelTab] = useState<'SHS' | 'JHS' | 'SUGGESTIONS_MAKER'>('SUGGESTIONS_MAKER');
   const [shsCategoryTab, setShsCategoryTab] = useState<'ACADEMIC' | 'TECHPRO' | 'TEACHER_PROGRAMS'>('ACADEMIC');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [departmentFilter, setDepartmentFilter] = useState<string>('ALL');
@@ -147,10 +148,22 @@ export const LNNCHSTeacherLoadingSummaryDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Level Selector Tabs (JHS vs SHS) */}
+      {/* Level Selector Tabs (SUGGESTIONS MAKER vs SHS vs JHS) */}
       <div className="flex flex-wrap bg-stone-200 p-1.5 rounded-2xl gap-2">
         <button
-          onClick={() => { setLevelTab('SHS'); setShsCategoryTab('ACADEMic' as any); }}
+          onClick={() => setLevelTab('SUGGESTIONS_MAKER')}
+          className={`flex-1 min-w-[240px] py-3.5 px-6 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-3 cursor-pointer ${
+            levelTab === 'SUGGESTIONS_MAKER' 
+              ? 'bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-stone-950 shadow-md ring-2 ring-amber-400' 
+              : 'text-stone-700 hover:bg-stone-300'
+          }`}
+        >
+          <Sparkles className="w-5 h-5 text-stone-950 animate-bounce" />
+          <span>⚡ Principal, Asst. &amp; Head Teachers Suggestion Maker</span>
+        </button>
+
+        <button
+          onClick={() => { setLevelTab('SHS'); setShsCategoryTab('ACADEMIC'); }}
           className={`flex-1 min-w-[200px] py-3.5 px-6 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-3 cursor-pointer ${
             levelTab === 'SHS' 
               ? 'bg-[#002776] text-white shadow-md ring-2 ring-blue-400' 
@@ -173,6 +186,11 @@ export const LNNCHSTeacherLoadingSummaryDashboard: React.FC = () => {
           <span>Junior High School (JHS - Grade 7 to 10)</span>
         </button>
       </div>
+
+      {/* RENDER FLAGSHIP SUGGESTION MAKER COMPONENT */}
+      {levelTab === 'SUGGESTIONS_MAKER' && (
+        <ClassProgramAndTeacherLoadMaker />
+      )}
 
       {/* SHS Track Sub-Tabs (Academic vs TechPro vs Programs) */}
       {levelTab === 'SHS' && (

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, Send, X, User, MessageSquareText } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-export const Chathead: React.FC = () => {
+export const Chathead = React.memo(() => {
   const { chatMessages, sendChatMessage, currentUser } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
@@ -123,4 +123,4 @@ export const Chathead: React.FC = () => {
       </button>
     </div>
   );
-};
+});

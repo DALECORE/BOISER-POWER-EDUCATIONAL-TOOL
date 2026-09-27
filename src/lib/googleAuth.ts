@@ -14,26 +14,18 @@ export const auth = getAuth(app);
 
 export const WORKSPACE_SCOPES = [
   'https://mail.google.com/',
-  'https://www.googleapis.com/auth/gmail.addons.current.action.compose',
-  'https://www.googleapis.com/auth/gmail.addons.current.message.action',
-  'https://www.googleapis.com/auth/gmail.addons.current.message.metadata',
-  'https://www.googleapis.com/auth/gmail.addons.current.message.readonly',
   'https://www.googleapis.com/auth/gmail.compose',
-  'https://www.googleapis.com/auth/gmail.insert',
-  'https://www.googleapis.com/auth/gmail.labels',
-  'https://www.googleapis.com/auth/gmail.metadata',
-  'https://www.googleapis.com/auth/gmail.modify',
   'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/gmail.send',
-  'https://www.googleapis.com/auth/gmail.settings.basic',
-  'https://www.googleapis.com/auth/gmail.settings.sharing',
   'https://www.googleapis.com/auth/drive.file',
   'https://www.googleapis.com/auth/drive',
   'https://www.googleapis.com/auth/drive.readonly',
+  'https://www.googleapis.com/auth/forms.body',
+  'https://www.googleapis.com/auth/forms.body.readonly',
+  'https://www.googleapis.com/auth/forms.responses.readonly'
 ];
 
 const provider = new GoogleAuthProvider();
-// Add Workspace scopes
 WORKSPACE_SCOPES.forEach((scope) => {
   provider.addScope(scope);
 });
@@ -44,7 +36,6 @@ provider.setCustomParameters({
 let isSigningIn = false;
 let cachedAccessToken: string | null = null;
 
-// Initialize auth state listener
 export const initAuth = (
   onAuthSuccess?: (user: User, token: string) => void,
   onAuthFailure?: () => void
@@ -64,20 +55,19 @@ export const initAuth = (
   });
 };
 
-// Must be called from a user interaction
-export const googleSignIn = async (): Promise<{ user: User; accessToken: string } | null> => {
+export const googleSignIn = async () => {
+  if (isSigningIn) return null;
+  isSigningIn = true;
   try {
-    isSigningIn = true;
     const result = await signInWithPopup(auth, provider);
     const credential = GoogleAuthProvider.credentialFromResult(result);
-    if (!credential?.accessToken) {
-      throw new Error('Failed to get access token from Google sign in');
+    if (!credential || !credential.accessToken) {
+      throw new Error('Failed to get Google access token.');
     }
-
     cachedAccessToken = credential.accessToken;
     return { user: result.user, accessToken: cachedAccessToken };
   } catch (error: any) {
-    console.error('Google sign in error:', error);
+    console.error('Sign in error:', error);
     throw error;
   } finally {
     isSigningIn = false;

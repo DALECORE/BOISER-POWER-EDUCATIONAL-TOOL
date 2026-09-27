@@ -24,7 +24,7 @@ export interface EducationalSourceCategory {
 export const OFFICIAL_EDUCATIONAL_SOURCES: EducationalSourceCategory[] = [
   {
     subject: "Science",
-    recommendedSource: "PhET Simulations (translated), DepEd Commons",
+    recommendedSource: "PhET Simulations (translated), DepEd LRMDS & MATATAG Portal",
     url: "https://phet.colorado.edu",
     description: "Interactive HTML5 science and math simulations developed by the University of Colorado Boulder, fully translated for classroom demonstrations.",
     sampleTopics: ["Photosynthesis", "Plate Tectonics", "Atomic Structure", "Ohm's Law", "Genetics"]
@@ -45,7 +45,7 @@ export const OFFICIAL_EDUCATIONAL_SOURCES: EducationalSourceCategory[] = [
   },
   {
     subject: "MAPEH",
-    recommendedSource: "DepEd Commons, CCP (Cultural Center of the Philippines)",
+    recommendedSource: "LRMDS Repository, CCP (Cultural Center of the Philippines)",
     url: "https://culturalcenter.gov.ph",
     description: "Philippine folk dances, indigenous music collections, visual arts archives, and physical education fitness frameworks.",
     sampleTopics: ["Traditional Folk Dances (Tinikling, Singkil)", "Philippine Rondalla", "Health & Nutrition Matrix"]

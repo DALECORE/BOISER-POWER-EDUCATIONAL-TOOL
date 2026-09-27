@@ -17,7 +17,39 @@ export default defineConfig(() => {
         registerType: 'autoUpdate',
         injectRegister: 'auto',
         devOptions: {
-          enabled: false
+          enabled: true,
+          type: 'module'
+        },
+        manifest: {
+          id: '/',
+          name: 'BOISER EDUCATIONAL RESOURCES',
+          short_name: 'BOISER APP',
+          description: 'Official Smart Suite for Modern Teachers SY 2026-2027.',
+          theme_color: '#0038A8',
+          background_color: '#F9F8F6',
+          display: 'standalone',
+          start_url: '/',
+          scope: '/',
+          icons: [
+            {
+              src: '/pwa-192x192.png',
+              sizes: '192x192',
+              type: 'image/png',
+              purpose: 'any'
+            },
+            {
+              src: '/pwa-512x512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'any'
+            },
+            {
+              src: '/pwa-maskable-512x512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable'
+            }
+          ]
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],

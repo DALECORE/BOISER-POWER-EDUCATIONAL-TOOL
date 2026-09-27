@@ -41,16 +41,16 @@ import {
   HardDrive,
   RefreshCw
 } from 'lucide-react';
-import { CebuanoVoiceGuide } from './CebuanoVoiceGuide';
 import { useStorageManager } from '../hooks/useStorageManager';
 
 interface GuideModuleProps {
   isOwner?: boolean;
 }
 
-export const GuideModule: React.FC<GuideModuleProps> = ({ isOwner = true }) => {
-  const { allocate50GBCacheVault, maximize500GBCacheVault, autoActivateAllServices, autoCleanNightly2AM3AMWithSavingsVault, toggleAutoSaveMode, breakdown, isClearing, clearResult } = useStorageManager();
+export const GuideModule = React.memo(({ isOwner = true }: GuideModuleProps) => {
+  const { allocate50GBCacheVault, maximize1000GBCacheVault, autoActivateAllServices, autoCleanNightly2AM3AMWithSavingsVault, toggleAutoSaveMode, breakdown, isClearing, clearResult } = useStorageManager();
   const [lang, setLang] = useState<'en' | 'bis' | 'tl'>('en');
+  const [voiceStyle, setVoiceStyle] = useState<string>('Sweet Girl');
   const [activeTab, setActiveTab] = useState<'user_manual' | 'master_guide' | 'quick_cheatsheet' | 'owner_certificate'>('user_manual');
   const [masterUnlocked, setMasterUnlocked] = useState<boolean>(isOwner);
   const [masterPin, setMasterPin] = useState<string>('');
@@ -103,7 +103,7 @@ export const GuideModule: React.FC<GuideModuleProps> = ({ isOwner = true }) => {
       subtitle: "Official DepEd Master Manual & Comprehensive Interactive Operations Guide",
       searchPlaceholder: "Search guides, skills, 3D simulations, QR grading, Excel formulas...",
       tabUser: "📘 Teacher & User Manual",
-      tabMaster: "👑 Master Guide (Steaven Kinth D. Boiser Exclusive)",
+      tabMaster: "👑 Administrator Guide",
       tabCheatsheet: "⚡ Quick Command Cheatsheet",
       tabCert: "🏅 Authenticity & Master Credentials",
       
@@ -179,6 +179,21 @@ export const GuideModule: React.FC<GuideModuleProps> = ({ isOwner = true }) => {
           ]
         },
         {
+          id: 'google_forms',
+          icon: Share2,
+          badge: 'Google Forms API & OAuth2',
+          title: 'Google Forms Creator & Response Hub',
+          desc: 'Automated Google Forms creation and deployment for DepEd quizzes, diagnostic tests, and student feedback surveys directly in your Google Drive.',
+          steps: [
+            'Click "📝 Google Forms Creator" in the top navigation bar.',
+            'Ensure your Google Account is connected (click "Connect Google Account" if needed).',
+            'Specify the Form Title and Description / DepEd subject instructions.',
+            'Add multiple-choice or short-answer question prompts with choices and required status.',
+            'Click "Deploy Google Form to Drive" — the engine creates the form via Google Forms API.',
+            'Copy the shareable student URL or click "Open Form" to distribute to your learners!'
+          ]
+        },
+        {
           id: 'offline',
           icon: Smartphone,
           badge: 'Zero-Data PWA / APK (8.5 MB)',
@@ -188,7 +203,7 @@ export const GuideModule: React.FC<GuideModuleProps> = ({ isOwner = true }) => {
             'Initial App Download Size: Progressive Web App (~8.5 MB) / Standalone Android APK (~12.2 MB).',
             'Offline Storage Footprint: ~18.5 MB cached in IndexedDB/CacheStorage for offline 3D models, MATATAG database, and voice engine.',
             'Offline Capabilities (0 MB Data): Generate ILAW Lesson Plans, Edit LNNCHS SF1–SF10 & Adviser Doors, Run 3D Spatial Simulations, Create MS Word/Excel/PPTX/PDF files, & Grade QR test sheets.',
-            'Online Capabilities (Wi-Fi/Data Required): Google Drive 2-way cloud auto-sync (<50 KB payload), live BOISER AI Chatbot queries, and DepEd Commons LRMDS portal downloads.',
+            'Online Capabilities (Wi-Fi/Data Required): Google Drive 2-way cloud auto-sync (<50 KB payload), live BOISER AI Chatbot queries, and LRMDS portal downloads.',
             'Automatic Cloud Sync: Reconnecting internet triggers automatic cloud background sync in under 30 seconds.'
           ]
         },
@@ -197,7 +212,7 @@ export const GuideModule: React.FC<GuideModuleProps> = ({ isOwner = true }) => {
           icon: Sparkles,
           badge: 'Automatic Sync Protocol',
           title: '🔄 Automatic Dynamic Update & Change Activation',
-          desc: 'Ensures that whenever Master Creator Steaven Kinth D. Boiser updates, improves, or enhances the app, the User Guide and LNNCHS template instructions automatically update and synchronize in real-time.',
+          desc: 'Ensures that whenever system updates, improvements, or enhancements are deployed, the User Guide and LNNCHS template instructions automatically update and synchronize in real-time.',
           steps: [
             'Whenever code improvements, new features, or template adjustments are deployed, the system triggers the Auto-Update Protocol.',
             'The User Guide and LNNCHS template handbook automatically reflect the latest modifications without manual refreshing.',
@@ -215,7 +230,7 @@ export const GuideModule: React.FC<GuideModuleProps> = ({ isOwner = true }) => {
       subtitle: "Opisyal nga DepEd Master Manual & Komprehensibong Giya sa Paggamit sa Sistema",
       searchPlaceholder: "Pangitaa ang mga giya, skills, 3D simulations, QR grading, Excel formulas...",
       tabUser: "📘 Giya para sa mga Magtutudlo",
-      tabMaster: "👑 Master Guide (Esklusibo kang Steaven Kinth D. Boiser)",
+      tabMaster: "👑 Administrator Guide",
       tabCheatsheet: "⚡ Paspas nga Kodigo ug Cheatsheet",
       tabCert: "🏅 Kredensyal ug Katungod sa Tag-iya",
 
@@ -314,7 +329,7 @@ export const GuideModule: React.FC<GuideModuleProps> = ({ isOwner = true }) => {
       subtitle: "Opisyal na DepEd Master Manual at Komprehensibong Gabay sa Paggamit ng App",
       searchPlaceholder: "Maghanap ng mga gabay, skills, 3D simulations, QR grading, Excel formulas...",
       tabUser: "📘 Gabay para sa mga Guro",
-      tabMaster: "👑 Master Guide (Eksklusibo kay Steaven Kinth D. Boiser)",
+      tabMaster: "👑 Administrator Guide",
       tabCheatsheet: "⚡ Mabilisang Kodigo at Cheatsheet",
       tabCert: "🏅 Kredensyal at Pagmamay-ari",
 
@@ -486,10 +501,38 @@ export const GuideModule: React.FC<GuideModuleProps> = ({ isOwner = true }) => {
       </div>
 
       {/* Voice Guide (Calm, Humble & Respectful Cebuano Male Voice) */}
-      <CebuanoVoiceGuide
-        guideKey="userGuide"
-        label="Listen to User Guide Audio Narration (Cebuano Male)"
-      />
+      <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-4 shadow-sm">
+        <h3 className="text-sm font-black text-stone-900 uppercase">Voice-Over Configuration</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-stone-600 mb-1">Select Language:</label>
+            <select
+              value={lang}
+              onChange={(e) => setLang(e.target.value as any)}
+              className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs font-bold"
+            >
+              <option value="en">English</option>
+              <option value="bis">Bisaya (Cebuano)</option>
+              <option value="tl">Tagalog (Filipino)</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-stone-600 mb-1">Voice Style:</label>
+            <select
+              value={voiceStyle}
+              onChange={(e) => setVoiceStyle(e.target.value)}
+              className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs font-bold"
+            >
+              <option value="Sweet Girl">Sweet Girl Voice</option>
+              <option value="Male">Male Voice</option>
+              <option value="Baby">Baby Voice</option>
+              <option value="Grandma">Grandma Voice</option>
+              <option value="Grandpa">Grandpa Voice</option>
+              <option value="Smart">Smart Voice</option>
+            </select>
+          </div>
+        </div>
+      </div>
 
       {/* ==================================================== */}
       {/* 2. MAIN NAVIGATION TABS */}
@@ -713,7 +756,7 @@ export const GuideModule: React.FC<GuideModuleProps> = ({ isOwner = true }) => {
                 <ul className="space-y-1.5 text-xs text-stone-200 list-disc pl-4">
                   <li><strong className="text-white">Google Drive Auto-Sync:</strong> 2-way cloud backup (&lt;50 KB payload).</li>
                   <li><strong className="text-white">BOISER AI Chatbot:</strong> Live Gemini API query for DepEd Memos.</li>
-                  <li><strong className="text-white">DepEd LRMDS Fetch:</strong> Live portal downloads from DepEd Commons.</li>
+                  <li><strong className="text-white">DepEd LRMDS Fetch:</strong> Live portal downloads from official LRMDS repository.</li>
                   <li><strong className="text-white">Cross-Device Cloud Vault:</strong> Remote backup restore &amp; sync.</li>
                 </ul>
               </div>
@@ -1008,4 +1051,4 @@ export const GuideModule: React.FC<GuideModuleProps> = ({ isOwner = true }) => {
       )}
     </div>
   );
-};
+});
