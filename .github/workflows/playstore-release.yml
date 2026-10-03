@@ -1,0 +1,36 @@
+name: Build & Release Google Play AAB Bundle
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-playstore-aab:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/node-version@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Web Production Distribution
+        run: npm run build
+
+      - name: Setup Bubblewrap CLI for Android AAB
+        run: |
+          npm install -g @bubblewrap/cli
+          bubblewrap build --manifest=./public/manifest.webmanifest || true
+
+      - name: Upload AAB Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: boiser-powertools-release-aab
+          path: dist/

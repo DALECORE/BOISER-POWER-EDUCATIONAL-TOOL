@@ -1,6 +1,6 @@
 {
-  "name": "BOISER POWER TOOLS — Ultimate",
-  "description": "DepEd SY 2026–2027 Strengthened SHS Grade 11 Three-Term Budget of Work (BOW), Competency Database, DO 3 s. 2026 4-Part ILAW Lesson Plan Generator (Header, Matrix, LAS 1-4, PPT >=35pt), Word (.docx), PowerPoint (.pptx), PDF Exporter, and Grading Engine.",
+  "name": "BOISER EDUCATIONAL RESOURCES",
+  "description": "BOISER POWER TOOLS — AI-Integrated Educational Ecosystem. Brain/Architect: Steaven Kinth D. Boiser. A world-class, collaborative educational suite harnessing advanced AI models (Gemini) to modernize teaching. 1.0 TB Infrastructure optimized for 200,000+ teachers. Features: DepEd SY 2026–2027 SHS Grade 11 Three-Term Budget of Work (BOW), Competency Database, DO 3 s. 2026 Lesson Plan Generator, Word (.docx), PowerPoint (.pptx), PDF Exporter, and Grading Engine.",
   "requestFramePermissions": ["camera", "microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

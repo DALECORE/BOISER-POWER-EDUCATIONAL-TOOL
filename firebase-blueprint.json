@@ -1,0 +1,78 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "school": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "AnswerKey": {
+      "title": "Answer Key",
+      "description": "Correct answers for an assessment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "subject": { "type": "string" },
+        "gradeLevel": { "type": "string" },
+        "totalItems": { "type": "integer" },
+        "items": { "type": "array" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "items"]
+    },
+    "Batch": {
+      "title": "Batch",
+      "description": "A grading session",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "section": { "type": "string" },
+        "answerKeyId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "answerKeyId"]
+    },
+    "StudentGrade": {
+      "title": "Student Grade",
+      "description": "Grading result for a single student in a batch",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "section": { "type": "string" },
+        "evaluatedAt": { "type": "string" },
+        "gradingResult": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "gradingResult"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/users/{userId}/answerKeys/{keyId}": {
+      "schema": "AnswerKey",
+      "description": "Saved answer keys"
+    },
+    "/users/{userId}/batches/{batchId}": {
+      "schema": "Batch",
+      "description": "Grading sessions (batches)"
+    },
+    "/users/{userId}/batches/{batchId}/studentGrades/{studentId}": {
+      "schema": "StudentGrade",
+      "description": "Grading results for students in a specific batch"
+    }
+  }
+}
