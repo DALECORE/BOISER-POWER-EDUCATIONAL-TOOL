@@ -18,11 +18,14 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
       - name: Install Dependencies
-        run: npm install --no-package-lock --no-audit --no-fund
+        run: bun install --frozen-lockfile
 
       - name: Build Web Production Distribution
-        run: npm run build
+        run: bun run build
 
       - name: Setup Bubblewrap CLI for Android AAB
         run: |
